@@ -6,6 +6,16 @@
     <title>{% block title %}OnlyFriends{% endblock %}</title>
     {% load static %}
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <script>
+        // Apply dark mode immediately to prevent flash
+        (function() {
+            if (localStorage.getItem('darkMode') === 'true') {
+                document.documentElement.classList.add('dark-mode');
+                document.body.classList.add('dark-mode');
+            }
+        })();
+    </script>
+    {% block extra_head %}{% endblock %}
 </head>
 <body>
     <header>
@@ -41,6 +51,12 @@
                 <li><a href="{% url 'core:debts_list' %}" class="{% if 'debt' in request.resolver_match.url_name %}active{% endif %}">💰 Dluhy</a></li>
                 <li><a href="{% url 'core:undercover' %}" class="{% if 'undercover' in request.resolver_match.url_name %}active{% endif %}">🎮 Undercover</a></li>
                 <li><a href="{% url 'core:notifications' %}" class="{% if 'notification' in request.resolver_match.url_name %}active{% endif %}">🔔 Notifikace</a></li>
+                <li class="dark-mode-toggle">
+                    <button type="button" id="darkModeToggle" class="dark-mode-btn" aria-label="Toggle dark mode">
+                        <span class="dark-mode-icon">🌙</span>
+                        <span class="dark-mode-text">Tmavý režim</span>
+                    </button>
+                </li>
             </ul>
         </div>
     </nav>
@@ -63,6 +79,88 @@
             <p>&copy; 2025 OnlyFriends - Aplikace pro skupinu přátel</p>
         </div>
     </footer>
+
+    <script>
+        // Dark mode functionality - works immediately and on DOM ready
+        (function() {
+            'use strict';
+            
+            // Load saved preference
+            const savedDarkMode = localStorage.getItem('darkMode') === 'true';
+            const body = document.body;
+            const html = document.documentElement;
+            
+            // Apply dark mode immediately if saved (prevents flash)
+            if (savedDarkMode) {
+                try {
+                    html.classList.add('dark-mode');
+                    body.classList.add('dark-mode');
+                } catch(e) {
+                    console.error('Error applying dark mode:', e);
+                }
+            }
+            
+            // Function to update button text/icon
+            function updateButtonState(isDark) {
+                const darkModeIcon = document.querySelector('.dark-mode-icon');
+                const darkModeText = document.querySelector('.dark-mode-text');
+                
+                if (darkModeIcon) {
+                    darkModeIcon.textContent = isDark ? '☀️' : '🌙';
+                }
+                if (darkModeText) {
+                    darkModeText.textContent = isDark ? 'Světlý režim' : 'Tmavý režim';
+                }
+            }
+            
+            // Function to apply dark mode
+            function applyDarkMode(isDark) {
+                try {
+                    if (isDark) {
+                        html.classList.add('dark-mode');
+                        body.classList.add('dark-mode');
+                    } else {
+                        html.classList.remove('dark-mode');
+                        body.classList.remove('dark-mode');
+                    }
+                    updateButtonState(isDark);
+                    localStorage.setItem('darkMode', isDark.toString());
+                } catch(e) {
+                    console.error('Error toggling dark mode:', e);
+                }
+            }
+            
+            // Initialize when DOM is ready
+            function initDarkMode() {
+                const darkModeToggle = document.getElementById('darkModeToggle');
+                
+                if (!darkModeToggle) {
+                    return;
+                }
+                
+                // Set initial button state
+                updateButtonState(savedDarkMode);
+                
+                // Toggle dark mode on button click
+                darkModeToggle.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    const isDark = body.classList.contains('dark-mode') || html.classList.contains('dark-mode');
+                    const newDarkMode = !isDark;
+                    applyDarkMode(newDarkMode);
+                });
+            }
+            
+            // Run when DOM is ready
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initDarkMode);
+            } else {
+                // DOM is already ready
+                initDarkMode();
+            }
+        })();
+    </script>
 </body>
 </html>
 

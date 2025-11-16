@@ -2,14 +2,791 @@
 
 {% block title %}Mapy - OnlyFriends{% endblock %}
 
+{% block extra_head %}
+<!-- Leaflet CSS and JS for OpenStreetMap -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" 
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" 
+      crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" 
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" 
+        crossorigin=""></script>
+<style>
+    #locationsMap {
+        width: 100% !important;
+        height: 600px !important;
+        position: relative !important;
+        z-index: 1 !important;
+    }
+    #locationsMap .leaflet-container {
+        width: 100% !important;
+        height: 100% !important;
+        z-index: 1 !important;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="content-header">
     <h2>🗺️ Mapy</h2>
     <p>Plánování výletů a ukládání míst do backlogu</p>
-    <a href="{% url 'core:map_create' %}" class="btn">➕ Přidat místo</a>
+    <a href="{% url 'core:map_create' %}" class="btn">➕ Přidat místo ručně</a>
 </div>
 
+<!-- Map Explorer Section -->
+<div class="card" style="margin-bottom: 30px;">
+    <h3>🗺️ Vyhledávání a přidání místa z mapy</h3>
+    
+    <!-- Map Type Selector -->
+    <div style="margin-bottom: 15px; display: flex; gap: 10px; border-bottom: 2px solid #e0e0e0; padding-bottom: 10px;">
+        <button id="mapTypeOSM" class="btn btn-primary" onclick="switchMapType('osm')">OpenStreetMap</button>
+        <button id="mapTypeGoogle" class="btn btn-secondary" onclick="switchMapType('google')">Google Maps</button>
+        <a href="https://mapy.cz" target="_blank" class="btn btn-secondary" style="text-decoration: none;">Mapy.cz (externí)</a>
+    </div>
+    
+    <!-- Search Box -->
+    <div style="margin-bottom: 15px;">
+        <div style="display: flex; gap: 10px;">
+            <input type="text" id="mapSearch" class="form-control" placeholder="Hledat místo..." style="flex: 1;">
+            <button onclick="searchPlace()" class="btn">🔍 Hledat</button>
+        </div>
+    </div>
+    
+    <!-- Manual Coordinate Input -->
+    <div style="margin-bottom: 15px; padding: 10px; background: #fff3cd; border-radius: 5px; border-left: 4px solid #ffc107;">
+        <p style="margin: 0 0 10px 0;"><strong>💡 Tip:</strong> Zadejte souřadnice ručně, použijte mapu níže, nebo vložte odkaz z Google Maps</p>
+        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+            <label style="display: flex; align-items: center; gap: 5px;">
+                <strong>Zeměpisná šířka:</strong>
+                <input type="number" id="manualLat" step="any" class="form-control" placeholder="50.0755" style="width: 150px;">
+            </label>
+            <label style="display: flex; align-items: center; gap: 5px;">
+                <strong>Zeměpisná délka:</strong>
+                <input type="number" id="manualLng" step="any" class="form-control" placeholder="14.4208" style="width: 150px;">
+            </label>
+            <button onclick="useManualCoordinates()" class="btn btn-secondary">Použít</button>
+        </div>
+        <div style="margin-top: 10px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+            <label style="display: flex; align-items: center; gap: 5px; flex: 1; min-width: 200px;">
+                <strong>Google Maps URL:</strong>
+                <input type="text" id="googleMapsUrl" class="form-control" placeholder="Vložte odkaz z Google Maps..." style="flex: 1;">
+            </label>
+            <button onclick="extractCoordinatesFromUrl()" class="btn btn-secondary">Extrahovat souřadnice</button>
+        </div>
+    </div>
+    
+    <!-- Map Container -->
+    <div id="mapContainer" style="width: 100%; height: 500px; border: 1px solid #ddd; border-radius: 5px; margin-bottom: 15px; position: relative;" data-api-key="{{ GOOGLE_MAPS_API_KEY|default:'' }}">
+        <!-- OpenStreetMap (Leaflet) - default -->
+        <div id="osmMap" style="width: 100%; height: 100%;"></div>
+        
+        <!-- Google Maps will be loaded here via JavaScript API -->
+        <div id="googleMap" style="width: 100%; height: 100%; display: none;"></div>
+        
+        <div id="mapInstructions" style="position: absolute; top: 10px; left: 10px; background: rgba(255,255,255,0.95); padding: 10px; border-radius: 5px; z-index: 1000; max-width: 300px; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
+            <strong>📌 Jak použít:</strong>
+            <ul style="margin: 5px 0; padding-left: 20px; font-size: 0.9rem;">
+                <li>Vyhledejte místo pomocí vyhledávacího pole</li>
+                <li>Klikněte na mapu pro výběr souřadnic</li>
+                <li>Nebo zadejte souřadnice ručně výše</li>
+            </ul>
+        </div>
+    </div>
+    
+    <!-- Selected Place Info and Form -->
+    <div id="selectedPlaceInfo" style="display: none; padding: 15px; background: #f8f9fa; border-radius: 5px; margin-bottom: 15px;">
+        <h4>Vybrané místo:</h4>
+        <p><strong>Název:</strong> <span id="selectedPlaceName">-</span></p>
+        <p><strong>Souřadnice:</strong> <span id="selectedPlaceCoords">-</span></p>
+        <button onclick="showCreateForm()" class="btn" style="margin-top: 10px;">➕ Vytvořit místo z tohoto bodu</button>
+    </div>
+    
+    <!-- Create Form (initially hidden) -->
+    <div id="createPlaceForm" style="display: none; padding: 15px; background: #fff; border: 2px solid #007bff; border-radius: 5px;">
+        <h4>Vytvořit nové místo</h4>
+        <form method="post" action="{% url 'core:map_create' %}">
+            {% csrf_token %}
+            <input type="hidden" id="formLatitude" name="latitude">
+            <input type="hidden" id="formLongitude" name="longitude">
+            
+            <div class="form-group">
+                <label for="formName"><strong>Název:</strong> <span style="color: red;">*</span></label>
+                <input type="text" id="formName" name="name" class="form-control" required>
+            </div>
+            
+            <div class="form-group" style="margin-top: 10px;">
+                <label for="formDescription"><strong>Popis:</strong></label>
+                <textarea id="formDescription" name="description" class="form-control" rows="3"></textarea>
+            </div>
+            
+            <div class="form-group" style="margin-top: 10px;">
+                <label for="formLocationType"><strong>Typ místa:</strong></label>
+                <select id="formLocationType" name="location_type" class="form-control">
+                    <option value="ferrata">Ferraty</option>
+                    <option value="hiking">Hiking</option>
+                    <option value="trip">Trip</option>
+                    <option value="other" selected>Other</option>
+                </select>
+            </div>
+            
+            <div class="form-group" style="margin-top: 10px;">
+                <label>
+                    <input type="checkbox" name="is_backlog" checked> V backlogu
+                </label>
+            </div>
+            
+            <div style="margin-top: 15px; display: flex; gap: 10px;">
+                <button type="submit" class="btn">Uložit místo</button>
+                <button type="button" onclick="hideCreateForm()" class="btn btn-secondary">Zrušit</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+let currentMapType = 'osm';
+let selectedLat = null;
+let selectedLng = null;
+let selectedPlaceName = '';
+let map = null; // Google Maps instance
+let osmMap = null; // OpenStreetMap Leaflet instance
+let marker = null; // Google Maps marker
+let osmMarker = null; // Leaflet marker
+let geocoder = null;
+
+// Load Google Maps JavaScript API
+function loadGoogleMapsAPI() {
+    if (typeof google !== 'undefined' && google.maps) {
+        initGoogleMap();
+        return;
+    }
+    
+    const mapContainer = document.getElementById('mapContainer');
+    const apiKey = mapContainer ? mapContainer.getAttribute('data-api-key') : '';
+    if (!apiKey || apiKey === '') {
+        useIframeFallback();
+        return;
+    }
+    
+    const script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=initGoogleMap`;
+    script.async = true;
+    script.defer = true;
+    document.head.appendChild(script);
+}
+
+function initGoogleMap() {
+    if (typeof google === 'undefined' || !google.maps) {
+        // If API key is not set, use iframe fallback
+        useIframeFallback();
+        return;
+    }
+    
+    const mapDiv = document.getElementById('googleMap');
+    map = new google.maps.Map(mapDiv, {
+        center: { lat: 50.0755, lng: 14.4208 }, // Prague
+        zoom: 11
+    });
+    
+    geocoder = new google.maps.Geocoder();
+    
+    // Add click listener to map
+    map.addListener('click', (event) => {
+        selectLocation(event.latLng.lat(), event.latLng.lng());
+    });
+    
+    // Add Places search box
+    const searchBox = new google.maps.places.SearchBox(document.getElementById('mapSearch'));
+    map.controls[google.maps.ControlPosition.TOP_LEFT].push(document.getElementById('mapSearch'));
+    
+    searchBox.addListener('places_changed', () => {
+        const places = searchBox.getPlaces();
+        if (places.length === 0) return;
+        
+        const place = places[0];
+        if (!place.geometry) return;
+        
+        if (place.geometry.viewport) {
+            map.fitBounds(place.geometry.viewport);
+        } else {
+            map.setCenter(place.geometry.location);
+            map.setZoom(17);
+        }
+        
+        selectLocation(place.geometry.location.lat(), place.geometry.location.lng(), place.name);
+    });
+}
+
+function useIframeFallback() {
+    // Fallback to iframe if API key is not available
+    const mapDiv = document.getElementById('mapContainer');
+    const apiKey = mapDiv ? mapDiv.getAttribute('data-api-key') : '';
+    const iframeSrc = apiKey ? 
+        `https://www.google.com/maps/embed/v1/place?key=${apiKey}&q=Prague` :
+        'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d163930.4997898095!2d14.3255405!3d50.0596696!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x470b939c0970798b%3A0x400af0f66140b90!2sPrague!5e0!3m2!1sen!2scz!4v1234567890123!5m2!1sen!2scz';
+    
+    mapDiv.innerHTML = `
+        <iframe 
+            id="googleMapFrame" 
+            width="100%" 
+            height="100%" 
+            style="border:0;" 
+            loading="lazy" 
+            allowfullscreen
+            referrerpolicy="no-referrer-when-downgrade"
+            src="${iframeSrc}">
+        </iframe>
+        ${!apiKey ? `
+        <div style="position: absolute; top: 10px; left: 10px; background: rgba(255,255,255,0.9); padding: 10px; border-radius: 5px; z-index: 1000;">
+            <strong>⚠️ Google Maps API klíč není nastaven.</strong><br>
+            Pro plnou funkcionalitu prosím nastavte API klíč v settings.py nebo použijte ruční zadání souřadnic.
+        </div>
+        ` : ''}
+    `;
+}
+
+function initOSMMap() {
+    if (osmMap) return; // Already initialized
+    
+    osmMap = L.map('osmMap').setView([50.0755, 14.4208], 11); // Prague
+    
+    // Add OpenStreetMap tiles
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors',
+        maxZoom: 19
+    }).addTo(osmMap);
+    
+    // Add click listener
+    osmMap.on('click', (e) => {
+        selectLocation(e.latlng.lat, e.latlng.lng);
+    });
+    
+    // If we have a selected location, add marker
+    if (selectedLat && selectedLng) {
+        updateOSMMarker(selectedLat, selectedLng);
+    }
+}
+
+function updateOSMMarker(lat, lng) {
+    if (osmMarker) {
+        osmMarker.setLatLng([lat, lng]);
+    } else {
+        osmMarker = L.marker([lat, lng], { draggable: true }).addTo(osmMap);
+        osmMarker.on('dragend', (e) => {
+            const pos = osmMarker.getLatLng();
+            selectLocation(pos.lat, pos.lng);
+        });
+    }
+    osmMap.setView([lat, lng], Math.max(osmMap.getZoom(), 15));
+}
+
+function switchMapType(type) {
+    currentMapType = type;
+    
+    // Update button styles
+    document.getElementById('mapTypeOSM').className = type === 'osm' ? 'btn btn-primary' : 'btn btn-secondary';
+    document.getElementById('mapTypeGoogle').className = type === 'google' ? 'btn btn-primary' : 'btn btn-secondary';
+    
+    // Show/hide map containers
+    document.getElementById('osmMap').style.display = type === 'osm' ? 'block' : 'none';
+    document.getElementById('googleMap').style.display = type === 'google' ? 'block' : 'none';
+    
+    // Initialize maps if needed
+    if (type === 'osm') {
+        if (!osmMap) {
+            initOSMMap();
+        } else {
+            // Trigger resize in case container was hidden
+            setTimeout(() => osmMap.invalidateSize(), 100);
+        }
+    } else if (type === 'google' && !map) {
+        loadGoogleMapsAPI();
+    }
+    
+    // Update marker on current map if we have selection
+    if (selectedLat && selectedLng) {
+        if (type === 'osm') {
+            updateOSMMarker(selectedLat, selectedLng);
+        } else if (type === 'google' && map) {
+            if (marker) {
+                marker.setPosition({ lat: selectedLat, lng: selectedLng });
+            } else {
+                marker = new google.maps.Marker({
+                    position: { lat: selectedLat, lng: selectedLng },
+                    map: map,
+                    draggable: true
+                });
+            }
+        }
+    }
+}
+
+function searchPlace() {
+    const query = document.getElementById('mapSearch').value.trim();
+    if (!query) {
+        alert('Zadejte prosím hledaný text.');
+        return;
+    }
+    
+    if (currentMapType === 'google') {
+        if (map && geocoder) {
+            geocoder.geocode({ address: query }, (results, status) => {
+                if (status === 'OK' && results[0]) {
+                    const location = results[0].geometry.location;
+                    map.setCenter(location);
+                    map.setZoom(15);
+                    selectLocation(location.lat(), location.lng(), results[0].formatted_address);
+                } else {
+                    alert('Místo nebylo nalezeno. Zkuste jiný dotaz.');
+                }
+            });
+        } else {
+            alert('Google Maps API klíč není nastaven. Použijte prosím OpenStreetMap nebo zadejte souřadnice ručně.');
+        }
+    } else {
+        // Use Nominatim (OpenStreetMap geocoding) - free, no API key needed
+        const encodedQuery = encodeURIComponent(query);
+        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodedQuery}&limit=1`)
+            .then(response => response.json())
+            .then(data => {
+                if (data && data.length > 0) {
+                    const result = data[0];
+                    const lat = parseFloat(result.lat);
+                    const lng = parseFloat(result.lon);
+                    selectLocation(lat, lng, result.display_name);
+                    if (osmMap) {
+                        osmMap.setView([lat, lng], 15);
+                    }
+                } else {
+                    alert('Místo nebylo nalezeno. Zkuste jiný dotaz.');
+                }
+            })
+            .catch(error => {
+                console.error('Geocoding error:', error);
+                alert('Chyba při vyhledávání. Zkuste to prosím znovu.');
+            });
+    }
+}
+
+function extractCoordinatesFromUrl() {
+    const url = document.getElementById('googleMapsUrl').value.trim();
+    if (!url) {
+        alert('Prosím vložte odkaz z Google Maps.');
+        return;
+    }
+    
+    // Try to extract coordinates from various Google Maps URL formats
+    let lat = null, lng = null;
+    
+    // Format 1: https://www.google.com/maps/@50.0755,14.4208,15z
+    const match1 = url.match(/@(-?\d+\.?\d*),(-?\d+\.?\d*)/);
+    if (match1) {
+        lat = parseFloat(match1[1]);
+        lng = parseFloat(match1[2]);
+    }
+    
+    // Format 2: https://www.google.com/maps/place/.../@50.0755,14.4208,15z
+    if (!lat || !lng) {
+        const match2 = url.match(/place\/[^@]+@(-?\d+\.?\d*),(-?\d+\.?\d*)/);
+        if (match2) {
+            lat = parseFloat(match2[1]);
+            lng = parseFloat(match2[2]);
+        }
+    }
+    
+    // Format 3: https://maps.google.com/?q=50.0755,14.4208
+    if (!lat || !lng) {
+        const match3 = url.match(/[?&]q=(-?\d+\.?\d*),(-?\d+\.?\d*)/);
+        if (match3) {
+            lat = parseFloat(match3[1]);
+            lng = parseFloat(match3[2]);
+        }
+    }
+    
+    if (lat && lng && !isNaN(lat) && !isNaN(lng)) {
+        selectLocation(lat, lng);
+        document.getElementById('googleMapsUrl').value = '';
+        alert('Souřadnice byly úspěšně extrahovány!');
+    } else {
+        alert('Nepodařilo se extrahovat souřadnice z odkazu. Zkontrolujte prosím formát URL.');
+    }
+}
+
+function selectLocation(lat, lng, name = '') {
+    selectedLat = lat;
+    selectedLng = lng;
+    selectedPlaceName = name;
+    
+    // Update UI
+    document.getElementById('selectedPlaceCoords').textContent = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+    document.getElementById('selectedPlaceName').textContent = name || 'Nepojmenované místo';
+    document.getElementById('selectedPlaceInfo').style.display = 'block';
+    
+    // Add marker to current map
+    if (currentMapType === 'osm' && osmMap) {
+        updateOSMMarker(lat, lng);
+    } else if (currentMapType === 'google' && map) {
+        if (marker) {
+            marker.setPosition({ lat, lng });
+        } else {
+            marker = new google.maps.Marker({
+                position: { lat, lng },
+                map: map,
+                draggable: true
+            });
+            
+            marker.addListener('dragend', (event) => {
+                selectLocation(event.latLng.lat(), event.latLng.lng(), selectedPlaceName);
+            });
+        }
+        map.setCenter({ lat, lng });
+        map.setZoom(Math.max(map.getZoom(), 15));
+    }
+    
+    // Update manual input fields
+    document.getElementById('manualLat').value = lat.toFixed(6);
+    document.getElementById('manualLng').value = lng.toFixed(6);
+}
+
+function useManualCoordinates() {
+    const lat = parseFloat(document.getElementById('manualLat').value);
+    const lng = parseFloat(document.getElementById('manualLng').value);
+    
+    if (isNaN(lat) || isNaN(lng)) {
+        alert('Prosím zadejte platné číselné hodnoty pro souřadnice.');
+        return;
+    }
+    
+    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+        alert('Souřadnice jsou mimo platný rozsah.');
+        return;
+    }
+    
+    selectLocation(lat, lng);
+    
+    // Center map on coordinates
+    if (currentMapType === 'osm' && osmMap) {
+        osmMap.setView([lat, lng], 15);
+    } else if (map && currentMapType === 'google') {
+        map.setCenter({ lat, lng });
+        map.setZoom(15);
+    }
+}
+
+function showCreateForm() {
+    if (!selectedLat || !selectedLng) {
+        alert('Prosím vyberte místo na mapě kliknutím nebo zadejte souřadnice ručně.');
+        return;
+    }
+    
+    // Pre-fill form with selected coordinates
+    document.getElementById('formLatitude').value = selectedLat;
+    document.getElementById('formLongitude').value = selectedLng;
+    document.getElementById('formName').value = selectedPlaceName || '';
+    
+    document.getElementById('createPlaceForm').style.display = 'block';
+    document.getElementById('selectedPlaceInfo').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function hideCreateForm() {
+    document.getElementById('createPlaceForm').style.display = 'none';
+}
+
+function clearSelection() {
+    selectedLat = null;
+    selectedLng = null;
+    selectedPlaceName = '';
+    document.getElementById('selectedPlaceInfo').style.display = 'none';
+    document.getElementById('createPlaceForm').style.display = 'none';
+    if (marker) {
+        marker.setMap(null);
+        marker = null;
+    }
+    if (osmMarker && osmMap) {
+        osmMap.removeLayer(osmMarker);
+        osmMarker = null;
+    }
+}
+
+// Initialize with OpenStreetMap (works without API key)
+window.initGoogleMap = initGoogleMap;
+switchMapType('osm');
+</script>
+
+<!-- Saved Locations Map Section -->
 {% if locations %}
+<div class="card" style="margin-bottom: 30px;">
+    <h3>🗺️ Mapa všech uložených míst</h3>
+    
+    <!-- Filter Buttons -->
+    <div style="margin-bottom: 15px; display: flex; gap: 10px; border-bottom: 2px solid #e0e0e0; padding-bottom: 10px;">
+        <button id="filterAll" class="btn btn-primary" onclick="filterLocationsMap('all')">Vše</button>
+        <button id="filterPlanned" class="btn btn-secondary" onclick="filterLocationsMap('planned')">✅ Plánované</button>
+        <button id="filterBacklog" class="btn btn-secondary" onclick="filterLocationsMap('backlog')">📋 Backlog</button>
+    </div>
+    
+    <!-- Locations Map -->
+    <div id="locationsMap" style="width: 100%; height: 600px; border: 1px solid #ddd; border-radius: 5px; position: relative; z-index: 1;"></div>
+</div>
+
+<script>
+// Locations Map (separate from explorer map)
+let locationsMap = null;
+let locationMarkers = [];
+let allLocationsData = [
+    {% for location in locations %}
+    {
+        id: {{ location.id }},
+        name: "{{ location.name|escapejs }}",
+        description: "{{ location.description|escapejs|truncatewords:20 }}",
+        latitude: {{ location.latitude }},
+        longitude: {{ location.longitude }},
+        location_type: "{{ location.get_location_type_display }}",
+        is_backlog: {{ location.is_backlog|yesno:"true,false" }},
+        added_by: "{{ location.added_by.username|default:'Neznámý'|escapejs }}",
+        created_at: "{{ location.created_at|date:'d.m.Y' }}",
+        events_count: {{ location.events.count }},
+        edit_url: "{% url 'core:map_edit' location.id %}"
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+];
+
+function initLocationsMap() {
+    if (locationsMap) {
+        console.log('Map already initialized');
+        return;
+    }
+    
+    const mapContainer = document.getElementById('locationsMap');
+    if (!mapContainer) {
+        console.error('Map container not found');
+        return;
+    }
+    
+    // Check if Leaflet is loaded
+    if (typeof L === 'undefined') {
+        console.error('Leaflet library is not loaded');
+        mapContainer.innerHTML = '<div style="padding: 20px; text-align: center; color: #666; background: #fff; border-radius: 5px;">Chyba: Leaflet knihovna není načtena. Obnovte prosím stránku.</div>';
+        return;
+    }
+    
+    try {
+        console.log('Initializing Leaflet map...');
+        
+        // Clear any existing content
+        mapContainer.innerHTML = '';
+        
+        // Initialize map centered on Czech Republic
+        locationsMap = L.map('locationsMap', {
+            zoomControl: true,
+            attributionControl: true
+        }).setView([49.8, 15.5], 7);
+        
+        console.log('Map object created:', locationsMap);
+        
+        // Add OpenStreetMap tiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            maxZoom: 19
+        }).addTo(locationsMap);
+        
+        console.log('Tile layer added');
+        
+        // Force map to resize after a short delay to ensure container is visible
+        setTimeout(() => {
+            if (locationsMap) {
+                locationsMap.invalidateSize();
+                console.log('Map size invalidated');
+            }
+        }, 100);
+        
+        // Add all markers
+        updateLocationsMap('all');
+    } catch (error) {
+        console.error('Error initializing locations map:', error);
+        mapContainer.innerHTML = '<div style="padding: 20px; text-align: center; color: #666; background: #fff; border-radius: 5px;">Chyba při inicializaci mapy: ' + error.message + '</div>';
+    }
+}
+
+function updateLocationsMap(filter) {
+    if (!locationsMap) {
+        console.error('Map is not initialized');
+        return;
+    }
+    
+    // Clear existing markers
+    locationMarkers.forEach(marker => {
+        try {
+            locationsMap.removeLayer(marker);
+        } catch (e) {
+            console.warn('Error removing marker:', e);
+        }
+    });
+    locationMarkers = [];
+    
+    // Filter locations
+    let filteredLocations = allLocationsData;
+    if (filter === 'planned') {
+        filteredLocations = allLocationsData.filter(loc => !loc.is_backlog);
+    } else if (filter === 'backlog') {
+        filteredLocations = allLocationsData.filter(loc => loc.is_backlog);
+    }
+    
+    if (filteredLocations.length === 0) {
+        console.log('No locations to display for filter:', filter);
+        // Show message in map if no locations
+        const mapDiv = document.getElementById('locationsMap');
+        if (mapDiv) {
+            const existingMsg = mapDiv.querySelector('.no-locations-msg');
+            if (!existingMsg) {
+                const msg = document.createElement('div');
+                msg.className = 'no-locations-msg';
+                msg.style.cssText = 'position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 20px; background: rgba(255,255,255,0.9); border-radius: 5px; z-index: 1000; text-align: center;';
+                msg.textContent = 'Žádná místa k zobrazení pro vybraný filtr.';
+                mapDiv.appendChild(msg);
+            }
+        }
+        return;
+    }
+    
+    // Remove any "no locations" message
+    const mapDiv = document.getElementById('locationsMap');
+    if (mapDiv) {
+        const existingMsg = mapDiv.querySelector('.no-locations-msg');
+        if (existingMsg) {
+            existingMsg.remove();
+        }
+    }
+    
+    // Create markers and bounds
+    const bounds = [];
+    
+    filteredLocations.forEach(location => {
+        try {
+            const marker = L.marker([location.latitude, location.longitude]);
+            
+            // Create popup content
+            const popupContent = `
+                <div style="min-width: 200px;">
+                    <h4 style="margin: 0 0 10px 0; font-size: 1.1rem;">${location.name}</h4>
+                    <p style="margin: 5px 0;"><strong>Typ:</strong> ${location.location_type}</p>
+                    <p style="margin: 5px 0;">
+                        <span class="badge badge-${location.is_backlog ? 'warning' : 'success'}" style="padding: 3px 8px; border-radius: 3px; font-size: 0.85rem;">
+                            ${location.is_backlog ? '📋 Backlog' : '✅ Plánováno'}
+                        </span>
+                    </p>
+                    ${location.description ? `<p style="margin: 5px 0; font-size: 0.9rem; color: #666;">${location.description}</p>` : ''}
+                    <p style="margin: 5px 0; font-size: 0.85rem;"><strong>📍</strong> ${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)}</p>
+                    <p style="margin: 5px 0; font-size: 0.85rem;"><strong>Přidal:</strong> ${location.added_by}</p>
+                    ${location.events_count > 0 ? `<p style="margin: 5px 0; font-size: 0.85rem;"><strong>Akce:</strong> ${location.events_count}</p>` : ''}
+                    <div style="margin-top: 10px;">
+                        <a href="${location.edit_url}" class="btn" style="font-size: 0.85rem; padding: 5px 10px; text-decoration: none; display: inline-block;">✏️ Upravit</a>
+                    </div>
+                </div>
+            `;
+            
+            marker.bindPopup(popupContent);
+            
+            // Create tooltip for hover
+            const tooltipContent = `
+                <div style="font-weight: bold; margin-bottom: 3px;">${location.name}</div>
+                <div style="font-size: 0.85rem;">${location.location_type}</div>
+                <div style="font-size: 0.85rem; color: #666;">
+                    ${location.is_backlog ? '📋 Backlog' : '✅ Plánováno'}
+                </div>
+            `;
+            marker.bindTooltip(tooltipContent, {
+                permanent: false,
+                direction: 'top',
+                offset: [0, -10]
+            });
+            
+            // Add click handler to open edit page
+            marker.on('click', function() {
+                window.location.href = location.edit_url;
+            });
+            
+            marker.addTo(locationsMap);
+            locationMarkers.push(marker);
+            bounds.push([location.latitude, location.longitude]);
+        } catch (error) {
+            console.error('Error adding marker for location:', location.name, error);
+        }
+    });
+    
+    // Fit map to show all markers
+    if (bounds.length > 0) {
+        try {
+            locationsMap.fitBounds(bounds, { padding: [50, 50] });
+        } catch (error) {
+            console.error('Error fitting bounds:', error);
+        }
+    }
+    
+    // Update filter button styles
+    try {
+        document.getElementById('filterAll').className = filter === 'all' ? 'btn btn-primary' : 'btn btn-secondary';
+        document.getElementById('filterPlanned').className = filter === 'planned' ? 'btn btn-primary' : 'btn btn-secondary';
+        document.getElementById('filterBacklog').className = filter === 'backlog' ? 'btn btn-primary' : 'btn btn-secondary';
+    } catch (error) {
+        console.error('Error updating filter buttons:', error);
+    }
+}
+
+function filterLocationsMap(filter) {
+    if (!locationsMap) {
+        initLocationsMap();
+    } else {
+        updateLocationsMap(filter);
+    }
+}
+
+// Initialize locations map when page loads and Leaflet is ready
+function initializeLocationsMapWhenReady() {
+    // Wait for Leaflet to be loaded
+    if (typeof L === 'undefined') {
+        console.log('Waiting for Leaflet to load...');
+        setTimeout(initializeLocationsMapWhenReady, 100);
+        return;
+    }
+    
+    console.log('Leaflet loaded, checking DOM...');
+    console.log('Locations data:', allLocationsData);
+    console.log('Locations count:', allLocationsData ? allLocationsData.length : 0);
+    
+    // Check if map container exists
+    const mapContainer = document.getElementById('locationsMap');
+    if (!mapContainer) {
+        console.log('Map container not found yet, waiting...');
+        setTimeout(initializeLocationsMapWhenReady, 100);
+        return;
+    }
+    
+    // Wait for DOM to be ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, initializing map');
+            setTimeout(() => initLocationsMap(), 200); // Small delay to ensure everything is ready
+        });
+    } else {
+        // DOM is already ready
+        console.log('DOM already ready, initializing map');
+        setTimeout(() => initLocationsMap(), 200); // Small delay to ensure Leaflet is fully loaded
+    }
+}
+
+// Start initialization when script loads
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeLocationsMapWhenReady);
+} else {
+    // DOM is already ready, start initialization
+    initializeLocationsMapWhenReady();
+}
+</script>
+
+<div style="margin-top: 30px;">
+    <h3>📋 Seznam všech míst</h3>
+</div>
+
 <div class="card-grid">
     {% for location in locations %}
     <div class="card">
@@ -25,6 +802,27 @@
         {% if location.added_by %}
             <p><strong>Přidal:</strong> {{ location.added_by.username }}</p>
         {% endif %}
+        
+        {% if location.events.all %}
+            <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e0e0e0;">
+                <p><strong>📅 Historie akcí:</strong></p>
+                <ul style="list-style: none; padding: 0; margin: 0;">
+                    {% for event in location.events.all %}
+                    <li style="margin: 8px 0;">
+                        <a href="{% url 'core:event_detail' event.id %}" style="text-decoration: none; color: #007bff; font-weight: 500;">
+                            📌 {{ event.title }}
+                        </a>
+                        {% if event.start_date %}
+                            <small style="display: block; color: #666; margin-top: 2px;">
+                                {{ event.start_date|date:"d.m.Y" }}
+                            </small>
+                        {% endif %}
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+        
         <div class="card-meta">
             <small>{{ location.created_at|date:"d.m.Y" }}</small>
             <div style="margin-top: 10px;">

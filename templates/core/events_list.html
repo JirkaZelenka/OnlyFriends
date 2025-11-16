@@ -9,37 +9,101 @@
     <a href="{% url 'core:event_create' %}" class="btn">➕ Přidat novou událost</a>
 </div>
 
-{% if events %}
-<div class="card-grid">
-    {% for event in events %}
-    <div class="card">
-        <h3>{{ event.title }}</h3>
-        {% if event.event_type == 'secret' %}
-            <span class="event-type-secret">🔒 Tajná akce</span>
-        {% else %}
-            <span class="event-type-public">🌍 Veřejná akce</span>
-        {% endif %}
-        <p>{{ event.description|truncatewords:20 }}</p>
-        {% if event.location %}
-            <p><strong>📍 Místo:</strong> {{ event.location }}</p>
-        {% endif %}
-        {% if event.organizer %}
-            <p><strong>👤 Organizátor:</strong> {{ event.organizer.username }}</p>
-        {% endif %}
-        {% if event.start_date %}
-            <p><strong>📅 Datum:</strong> {{ event.start_date|date:"d.m.Y H:i" }}</p>
-        {% endif %}
-        {% if event.albums.exists or event.photos.exists %}
-            <p><span class="badge badge-info">📸 Má fotky</span></p>
-        {% endif %}
-        <div class="card-meta">
-            <a href="{% url 'core:event_detail' event.id %}" class="btn">Zobrazit detail</a>
-            <a href="{% url 'core:event_edit' event.id %}" class="btn btn-secondary" style="margin-left: 10px;">✏️ Upravit</a>
-        </div>
+<!-- Year Filter Buttons -->
+<div style="margin-bottom: 30px; padding: 15px; background: #f8f9fa; border-radius: 5px;">
+    <p style="margin: 0 0 10px 0; font-weight: bold;">Filtr podle roku:</p>
+    <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+        <a href="?year=all" 
+           class="btn {% if current_year_filter == 'all' %}btn-primary{% else %}btn-secondary{% endif %}" 
+           style="text-decoration: none;">
+            Vše
+        </a>
+        {% for year in available_years %}
+        <a href="?year={{ year }}" 
+           class="btn {% if current_year_filter|stringformat:"s" == year|stringformat:"s" %}btn-primary{% else %}btn-secondary{% endif %}" 
+           style="text-decoration: none;">
+            {{ year }}
+        </a>
+        {% endfor %}
     </div>
-    {% endfor %}
 </div>
-{% else %}
+
+<!-- Upcoming Events Section -->
+{% if upcoming_events %}
+<div style="margin-bottom: 40px;">
+    <h3 style="margin-bottom: 20px; color: #28a745;">🔮 Nadcházející akce</h3>
+    <div class="card-grid">
+        {% for event in upcoming_events %}
+        <div class="card">
+            <h3>{{ event.title }}</h3>
+            {% if event.event_type == 'secret' %}
+                <span class="event-type-secret">🔒 Tajná akce</span>
+            {% else %}
+                <span class="event-type-public">🌍 Veřejná akce</span>
+            {% endif %}
+            <p>{{ event.description|truncatewords:20 }}</p>
+            {% if event.location %}
+                <p><strong>📍 Místo:</strong> {{ event.location }}</p>
+            {% endif %}
+            {% if event.organizer %}
+                <p><strong>👤 Organizátor:</strong> {{ event.organizer.username }}</p>
+            {% endif %}
+            {% if event.start_date %}
+                <p><strong>📅 Datum:</strong> {{ event.start_date|date:"d.m.Y H:i" }}</p>
+            {% else %}
+                <p><strong>📅 Datum:</strong> <em>Nespecifikováno</em></p>
+            {% endif %}
+            {% if event.albums.exists or event.photos.exists %}
+                <p><span class="badge badge-info">📸 Má fotky</span></p>
+            {% endif %}
+            <div class="card-meta">
+                <a href="{% url 'core:event_detail' event.id %}" class="btn">Zobrazit detail</a>
+                <a href="{% url 'core:event_edit' event.id %}" class="btn btn-secondary" style="margin-left: 10px;">✏️ Upravit</a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Past Events Section -->
+{% if past_events %}
+<div style="margin-bottom: 40px;">
+    <h3 style="margin-bottom: 20px; color: #6c757d;">📜 Proběhlé akce</h3>
+    <div class="card-grid">
+        {% for event in past_events %}
+        <div class="card">
+            <h3>{{ event.title }}</h3>
+            {% if event.event_type == 'secret' %}
+                <span class="event-type-secret">🔒 Tajná akce</span>
+            {% else %}
+                <span class="event-type-public">🌍 Veřejná akce</span>
+            {% endif %}
+            <p>{{ event.description|truncatewords:20 }}</p>
+            {% if event.location %}
+                <p><strong>📍 Místo:</strong> {{ event.location }}</p>
+            {% endif %}
+            {% if event.organizer %}
+                <p><strong>👤 Organizátor:</strong> {{ event.organizer.username }}</p>
+            {% endif %}
+            {% if event.start_date %}
+                <p><strong>📅 Datum:</strong> {{ event.start_date|date:"d.m.Y H:i" }}</p>
+            {% endif %}
+            {% if event.albums.exists or event.photos.exists %}
+                <p><span class="badge badge-info">📸 Má fotky</span></p>
+            {% endif %}
+            <div class="card-meta">
+                <a href="{% url 'core:event_detail' event.id %}" class="btn">Zobrazit detail</a>
+                <a href="{% url 'core:event_edit' event.id %}" class="btn btn-secondary" style="margin-left: 10px;">✏️ Upravit</a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Empty State -->
+{% if not upcoming_events and not past_events %}
 <div class="empty-state">
     <h3>Zatím žádné události</h3>
     <p><a href="{% url 'core:event_create' %}" class="btn">Vytvořit první událost</a></p>

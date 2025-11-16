@@ -34,6 +34,7 @@ class Event(models.Model):
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True)
     location = models.CharField(max_length=200, blank=True)
+    map_location = models.ForeignKey('MapLocation', on_delete=models.SET_NULL, null=True, blank=True, related_name='events', help_text="Link to a predefined place on the map")
     event_type = models.CharField(max_length=10, choices=EVENT_TYPES, default='public')
     organizer = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='organized_events')
     

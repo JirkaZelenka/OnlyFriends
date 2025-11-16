@@ -23,9 +23,59 @@ def index(request):
 
 @login_required
 def events_list(request):
-    """List of all events"""
-    events = Event.objects.all().order_by('-start_date')
-    return render(request, 'core/events_list.html', {'events': events})
+    """List of all events with filtering by year and separation into upcoming/past"""
+    from django.utils import timezone
+    from django.db.models import Q, IntegerField
+    from django.db.models.functions import ExtractYear
+    
+    now = timezone.now()
+    
+    # Get year filter from query parameter
+    year_filter = request.GET.get('year', 'all')
+    
+    # Get all available years from events that have dates (using database query)
+    available_years = list(
+        Event.objects
+        .exclude(start_date__isnull=True)
+        .annotate(year=ExtractYear('start_date', output_field=IntegerField()))
+        .values_list('year', flat=True)
+        .distinct()
+        .order_by('-year')
+    )
+    
+    # Get all events
+    all_events = Event.objects.all()
+    
+    # Filter by year if specified
+    if year_filter != 'all':
+        try:
+            year = int(year_filter)
+            all_events = all_events.filter(
+                Q(start_date__year=year) | Q(start_date__isnull=True)
+            )
+        except ValueError:
+            year_filter = 'all'
+    
+    # Separate into upcoming and past using database queries
+    # Upcoming: events with start_date >= now OR events without start_date
+    upcoming_events = list(
+        all_events.filter(
+            Q(start_date__gte=now) | Q(start_date__isnull=True)
+        ).order_by('start_date')
+    )
+    
+    past_events = list(
+        all_events.filter(
+            start_date__lt=now
+        ).order_by('-start_date')
+    )
+    
+    return render(request, 'core/events_list.html', {
+        'upcoming_events': upcoming_events,
+        'past_events': past_events,
+        'available_years': available_years,
+        'current_year_filter': year_filter,
+    })
 
 
 @login_required
@@ -36,6 +86,9 @@ def event_create(request):
         if form.is_valid():
             event = form.save(commit=False)
             event.organizer = request.user
+            # If map_location is selected, auto-populate location field with map_location name
+            if event.map_location and not event.location:
+                event.location = event.map_location.name
             event.save()
             form.save_m2m()  # Save many-to-many relationships
             messages.success(request, 'Událost byla úspěšně vytvořena!')
@@ -52,7 +105,12 @@ def event_edit(request, event_id):
     if request.method == 'POST':
         form = EventForm(request.POST, instance=event)
         if form.is_valid():
-            form.save()
+            event = form.save(commit=False)
+            # If map_location is selected, auto-populate location field with map_location name
+            if event.map_location and not event.location:
+                event.location = event.map_location.name
+            event.save()
+            form.save_m2m()  # Save many-to-many relationships
             messages.success(request, 'Událost byla úspěšně upravena!')
             return redirect('core:event_detail', event_id=event.id)
     else:
@@ -350,8 +408,12 @@ def photo_edit(request, photo_id):
 @login_required
 def maps_list(request):
     """Maps for planning trips"""
-    locations = MapLocation.objects.all()
-    return render(request, 'core/maps_list.html', {'locations': locations})
+    from django.conf import settings
+    locations = MapLocation.objects.all().prefetch_related('events')
+    return render(request, 'core/maps_list.html', {
+        'locations': locations,
+        'GOOGLE_MAPS_API_KEY': getattr(settings, 'GOOGLE_MAPS_API_KEY', ''),
+    })
 
 
 @login_required

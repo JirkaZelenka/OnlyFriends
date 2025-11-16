@@ -10,12 +10,13 @@ from .models import (
 class EventForm(forms.ModelForm):
     class Meta:
         model = Event
-        fields = ['title', 'description', 'location', 'event_type', 'start_date', 'end_date', 
+        fields = ['title', 'description', 'location', 'map_location', 'event_type', 'start_date', 'end_date', 
                   'is_recurring', 'recurring_pattern', 'excluded_users']
         widgets = {
             'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Název události'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'placeholder': 'Popis události'}),
-            'location': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Místo konání'}),
+            'location': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Místo konání (volitelné, pokud není vybráno místo z mapy)'}),
+            'map_location': forms.Select(attrs={'class': 'form-control'}),
             'event_type': forms.Select(attrs={'class': 'form-control'}),
             'start_date': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
             'end_date': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
@@ -26,7 +27,8 @@ class EventForm(forms.ModelForm):
         labels = {
             'title': 'Název',
             'description': 'Popis',
-            'location': 'Místo',
+            'location': 'Místo (text)',
+            'map_location': 'Místo z mapy',
             'event_type': 'Typ události',
             'start_date': 'Začátek',
             'end_date': 'Konec',
@@ -34,6 +36,12 @@ class EventForm(forms.ModelForm):
             'recurring_pattern': 'Vzor opakování',
             'excluded_users': 'Vyloučení uživatelé (pro tajné akce)',
         }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['map_location'].required = False
+        self.fields['map_location'].queryset = MapLocation.objects.all().order_by('name')
+        self.fields['location'].required = False
 
 
 class EventVoteForm(forms.ModelForm):

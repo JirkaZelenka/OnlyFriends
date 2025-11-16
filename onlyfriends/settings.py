@@ -124,3 +124,8 @@ LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
 
+# Google Maps API Key (optional - for map explorer functionality)
+# Get your API key from: https://console.cloud.google.com/google/maps-apis
+# Enable: Maps JavaScript API and Geocoding API
+GOOGLE_MAPS_API_KEY = ''  # Set your API key here or use environment variable
+

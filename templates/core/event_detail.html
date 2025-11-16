@@ -24,6 +24,21 @@
         <p><strong>📍 Místo:</strong> {{ event.location }}</p>
     {% endif %}
     
+    {% if event.map_location %}
+        <div style="margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 5px; border-left: 4px solid #007bff;">
+            <p><strong>🗺️ Místo z mapy:</strong> 
+                <a href="{% url 'core:maps_list' %}" style="color: #007bff; text-decoration: none; font-weight: 500;">
+                    {{ event.map_location.name }}
+                </a>
+            </p>
+            <p><strong>📍 Souřadnice:</strong> {{ event.map_location.latitude }}, {{ event.map_location.longitude }}</p>
+            {% if event.map_location.description %}
+                <p><small>{{ event.map_location.description|truncatewords:20 }}</small></p>
+            {% endif %}
+            <p><small><strong>Typ:</strong> {{ event.map_location.get_location_type_display }}</small></p>
+        </div>
+    {% endif %}
+    
     {% if event.organizer %}
         <p><strong>👤 Organizátor:</strong> {{ event.organizer.username }}</p>
     {% endif %}
