@@ -18,15 +18,26 @@
 {% if photos %}
 <div class="card-grid">
     {% for photo in photos %}
-    <div class="card">
+    <div class="card photo-card" data-photo-id="{{ photo.id }}">
         {% if photo.image %}
-            <img src="{{ photo.image.url }}" alt="{{ photo.caption }}" style="width: 100%; border-radius: 5px; margin-bottom: 10px;">
+            <div style="position: relative;">
+                <img src="{{ photo.image.url }}" alt="{{ photo.caption }}" style="width: 100%; border-radius: 5px; margin-bottom: 10px;">
+                <button class="like-btn {% if photo.is_liked %}liked{% endif %}" 
+                        data-photo-id="{{ photo.id }}" 
+                        onclick="toggleLike({{ photo.id }})"
+                        style="position: absolute; top: 10px; right: 10px; background: rgba(255, 255, 255, 0.8); border: none; border-radius: 50%; width: 40px; height: 40px; cursor: pointer; font-size: 20px; display: flex; align-items: center; justify-content: center; transition: all 0.3s;">
+                    <span class="like-icon">{% if photo.is_liked %}❤️{% else %}🤍{% endif %}</span>
+                </button>
+            </div>
         {% endif %}
         {% if photo.caption %}
             <p>{{ photo.caption }}</p>
         {% endif %}
         <div class="card-meta">
             <small>📤 {{ photo.user.username }} • {{ photo.uploaded_at|date:"d.m.Y" }}</small>
+            <div style="margin-top: 5px;">
+                <small class="like-count" data-photo-id="{{ photo.id }}">❤️ <span>{{ photo.like_count }}</span></small>
+            </div>
         </div>
     </div>
     {% endfor %}
@@ -39,5 +50,71 @@
 {% endif %}
 
 <a href="{% url 'core:album_detail' sub_album.parent_album.id %}" class="btn btn-secondary" style="margin-top: 20px;">← Zpět na album</a>
+
+<script>
+function toggleLike(photoId) {
+    const likeBtn = document.querySelector(`.like-btn[data-photo-id="${photoId}"]`);
+    const likeIcon = likeBtn.querySelector('.like-icon');
+    const likeCountEl = document.querySelector(`.like-count[data-photo-id="${photoId}"] span`);
+    
+    // Disable button during request
+    likeBtn.disabled = true;
+    
+    fetch(`{% url 'core:photo_like' 0 %}`.replace('0', photoId), {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json',
+        },
+        credentials: 'same-origin'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.liked) {
+            likeIcon.textContent = '❤️';
+            likeBtn.classList.add('liked');
+        } else {
+            likeIcon.textContent = '🤍';
+            likeBtn.classList.remove('liked');
+        }
+        if (likeCountEl) {
+            likeCountEl.textContent = data.like_count;
+        }
+        likeBtn.disabled = false;
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        likeBtn.disabled = false;
+    });
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+
+<style>
+.like-btn.liked {
+    background: rgba(255, 0, 0, 0.2) !important;
+}
+.like-btn:hover {
+    transform: scale(1.1);
+    background: rgba(255, 255, 255, 0.95) !important;
+}
+.like-btn.liked:hover {
+    background: rgba(255, 0, 0, 0.3) !important;
+}
+</style>
 {% endblock %}
 

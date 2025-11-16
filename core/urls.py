@@ -20,6 +20,7 @@ urlpatterns = [
     path('photos/create/album/<int:album_id>/', views.photo_create, name='photo_create_album'),
     path('photos/create/sub-album/<int:sub_album_id>/', views.photo_create, name='photo_create_sub_album'),
     path('photos/<int:photo_id>/edit/', views.photo_edit, name='photo_edit'),
+    path('photos/<int:photo_id>/like/', views.photo_like, name='photo_like'),
     path('albums/create/', views.album_create, name='album_create'),
     path('albums/create/event/<int:event_id>/', views.album_create, name='album_create_event'),
     path('albums/<int:album_id>/', views.album_detail, name='album_detail'),

@@ -5,7 +5,7 @@ from django.contrib import messages
 from django import forms
 from datetime import date
 from .models import (
-    Event, Photo, Album, SubAlbum, MapLocation, WeatherAlert, CalendarEntry, RecurringEvent,
+    Event, Photo, PhotoLike, Album, SubAlbum, MapLocation, WeatherAlert, CalendarEntry, RecurringEvent,
     ChatMessage, Tip, Debt, UndercoverWordPair, UndercoverGame, Notification,
     EventVote, EventChecklistItem, EventItinerary
 )
@@ -208,22 +208,43 @@ def event_detail(request, event_id):
 @login_required
 def photos_list(request):
     """Photo gallery with albums"""
+    from django.db.models import Count, Exists, OuterRef
+    
     # Get albums user can view
     all_albums = Album.objects.all()
     visible_albums = [album for album in all_albums if album.can_view(request.user)]
     
-    # Get standalone photos (not in albums)
-    standalone_photos = Photo.objects.filter(album=None).order_by('-uploaded_at')
+    # Get standalone photos (not in albums) with like info
+    standalone_photos = Photo.objects.filter(album=None).annotate(
+        like_count=Count('likes'),
+        is_liked=Exists(PhotoLike.objects.filter(photo=OuterRef('pk'), user=request.user))
+    ).order_by('-uploaded_at')
+    
+    # Get all photos for "Most liked" section (sorted by like count)
+    all_photos = Photo.objects.annotate(
+        like_count=Count('likes'),
+        is_liked=Exists(PhotoLike.objects.filter(photo=OuterRef('pk'), user=request.user))
+    ).order_by('-like_count', '-uploaded_at')
+    
+    # Get photos liked by current user
+    user_liked_photos = Photo.objects.filter(likes__user=request.user).distinct().annotate(
+        like_count=Count('likes'),
+        is_liked=Exists(PhotoLike.objects.filter(photo=OuterRef('pk'), user=request.user))
+    ).order_by('-uploaded_at')
     
     return render(request, 'core/photos_list.html', {
         'albums': visible_albums,
-        'standalone_photos': standalone_photos
+        'standalone_photos': standalone_photos,
+        'most_liked_photos': all_photos,
+        'my_liked_photos': user_liked_photos
     })
 
 
 @login_required
 def album_detail(request, album_id):
     """Album detail page with photos and sub-albums"""
+    from django.db.models import Count, Exists, OuterRef
+    
     album = get_object_or_404(Album, id=album_id)
     
     # Check if user can view
@@ -231,8 +252,11 @@ def album_detail(request, album_id):
         messages.error(request, 'Nemáte oprávnění zobrazit toto album.')
         return redirect('core:photos_list')
     
-    # Get photos in this album (not in sub-albums)
-    photos = album.photos.filter(sub_album=None).order_by('-uploaded_at')
+    # Get photos in this album (not in sub-albums) with like info
+    photos = album.photos.filter(sub_album=None).annotate(
+        like_count=Count('likes'),
+        is_liked=Exists(PhotoLike.objects.filter(photo=OuterRef('pk'), user=request.user))
+    ).order_by('-uploaded_at')
     sub_albums = album.sub_albums.all()
     
     return render(request, 'core/album_detail.html', {
@@ -245,6 +269,8 @@ def album_detail(request, album_id):
 @login_required
 def sub_album_detail(request, sub_album_id):
     """Sub-album detail page"""
+    from django.db.models import Count, Exists, OuterRef
+    
     sub_album = get_object_or_404(SubAlbum, id=sub_album_id)
     
     # Check if user can view parent album
@@ -252,7 +278,10 @@ def sub_album_detail(request, sub_album_id):
         messages.error(request, 'Nemáte oprávnění zobrazit toto sub-album.')
         return redirect('core:photos_list')
     
-    photos = sub_album.photos.all().order_by('-uploaded_at')
+    photos = sub_album.photos.all().annotate(
+        like_count=Count('likes'),
+        is_liked=Exists(PhotoLike.objects.filter(photo=OuterRef('pk'), user=request.user))
+    ).order_by('-uploaded_at')
     
     return render(request, 'core/sub_album_detail.html', {
         'sub_album': sub_album,
@@ -674,4 +703,34 @@ def notifications(request):
     """User notifications"""
     user_notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
     return render(request, 'core/notifications.html', {'notifications': user_notifications})
+
+
+@login_required
+def photo_like(request, photo_id):
+    """Like or unlike a photo"""
+    from django.http import JsonResponse
+    
+    photo = get_object_or_404(Photo, id=photo_id)
+    
+    if request.method == 'POST':
+        like, created = PhotoLike.objects.get_or_create(
+            photo=photo,
+            user=request.user
+        )
+        
+        if not created:
+            # Unlike - delete the like
+            like.delete()
+            liked = False
+        else:
+            liked = True
+        
+        like_count = photo.get_like_count()
+        
+        return JsonResponse({
+            'liked': liked,
+            'like_count': like_count
+        })
+    
+    return JsonResponse({'error': 'Invalid request'}, status=400)
 

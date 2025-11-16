@@ -164,6 +164,30 @@ class Photo(models.Model):
         if self.album:
             return f"Photo by {self.user.username} - {self.album.name}"
         return f"Photo by {self.user.username} - {self.event.title if self.event else 'General'}"
+    
+    def get_like_count(self):
+        """Get the number of likes for this photo"""
+        return self.likes.count()
+    
+    def is_liked_by(self, user):
+        """Check if a user has liked this photo"""
+        if not user or not user.is_authenticated:
+            return False
+        return self.likes.filter(user=user).exists()
+
+
+class PhotoLike(models.Model):
+    """Likes for photos"""
+    photo = models.ForeignKey(Photo, on_delete=models.CASCADE, related_name='likes')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='photo_likes')
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        unique_together = ['photo', 'user']
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.user.username} likes {self.photo.id}"
 
 
 class MapLocation(models.Model):
