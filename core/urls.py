@@ -14,10 +14,18 @@ urlpatterns = [
     path('events/<int:event_id>/edit/', views.event_edit, name='event_edit'),
     path('events/<int:event_id>/delete/', views.event_delete, name='event_delete'),
     
-    # Photos
+    # Photos and Albums
     path('photos/', views.photos_list, name='photos_list'),
     path('photos/create/', views.photo_create, name='photo_create'),
+    path('photos/create/album/<int:album_id>/', views.photo_create, name='photo_create_album'),
+    path('photos/create/sub-album/<int:sub_album_id>/', views.photo_create, name='photo_create_sub_album'),
     path('photos/<int:photo_id>/edit/', views.photo_edit, name='photo_edit'),
+    path('albums/create/', views.album_create, name='album_create'),
+    path('albums/create/event/<int:event_id>/', views.album_create, name='album_create_event'),
+    path('albums/<int:album_id>/', views.album_detail, name='album_detail'),
+    path('albums/<int:album_id>/edit/', views.album_edit, name='album_edit'),
+    path('albums/<int:album_id>/sub-album/create/', views.sub_album_create, name='sub_album_create'),
+    path('sub-albums/<int:sub_album_id>/', views.sub_album_detail, name='sub_album_detail'),
     
     # Maps
     path('maps/', views.maps_list, name='maps_list'),

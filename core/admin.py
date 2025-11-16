@@ -3,7 +3,7 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User
 from .models import (
     UserProfile, Event, EventVote, EventChecklistItem, EventItinerary,
-    Photo, MapLocation, WeatherAlert, CalendarEntry, RecurringEvent,
+    Photo, Album, SubAlbum, MapLocation, WeatherAlert, CalendarEntry, RecurringEvent,
     ChatMessage, Tip, Debt, UndercoverWordPair, UndercoverGame, Notification
 )
 
@@ -51,10 +51,24 @@ class EventItineraryAdmin(admin.ModelAdmin):
     list_filter = ['event']
 
 
+@admin.register(Album)
+class AlbumAdmin(admin.ModelAdmin):
+    list_display = ['name', 'owner', 'event', 'visibility', 'date', 'created_at']
+    list_filter = ['visibility', 'event', 'created_at']
+    search_fields = ['name', 'description']
+
+
+@admin.register(SubAlbum)
+class SubAlbumAdmin(admin.ModelAdmin):
+    list_display = ['name', 'parent_album', 'created_by', 'created_at']
+    list_filter = ['parent_album', 'created_at']
+    search_fields = ['name']
+
+
 @admin.register(Photo)
 class PhotoAdmin(admin.ModelAdmin):
-    list_display = ['event', 'user', 'uploaded_at']
-    list_filter = ['event', 'uploaded_at']
+    list_display = ['user', 'album', 'sub_album', 'event', 'uploaded_at']
+    list_filter = ['album', 'event', 'uploaded_at']
 
 
 @admin.register(MapLocation)

@@ -41,6 +41,42 @@
     {% endif %}
 </div>
 
+{% if albums %}
+<div class="card">
+    <h3>📁 Alba z této akce</h3>
+    <div class="card-grid">
+        {% for album in albums %}
+        <div class="card">
+            {% if album.intro_photo %}
+                <img src="{{ album.intro_photo.url }}" alt="{{ album.name }}" style="width: 100%; height: 150px; object-fit: cover; border-radius: 5px; margin-bottom: 10px;">
+            {% else %}
+                <div style="width: 100%; height: 150px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 5px; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; color: white; font-size: 2rem;">
+                    📁
+                </div>
+            {% endif %}
+            <h3>{{ album.name }}</h3>
+            {% if album.description %}
+                <p>{{ album.description|truncatewords:10 }}</p>
+            {% endif %}
+            <p><small><strong>Vlastník:</strong> {{ album.owner.username }}</small></p>
+            <div class="card-meta">
+                <a href="{% url 'core:album_detail' album.id %}" class="btn">Zobrazit album</a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    <div style="margin-top: 15px;">
+        <a href="{% url 'core:album_create_event' event.id %}" class="btn">➕ Vytvořit nové album</a>
+    </div>
+</div>
+{% else %}
+<div class="card">
+    <h3>📁 Alba</h3>
+    <p>Zatím žádná alba pro tuto akci.</p>
+    <a href="{% url 'core:album_create_event' event.id %}" class="btn">➕ Vytvořit první album</a>
+</div>
+{% endif %}
+
 <div class="card">
     <h3>🗳️ Hlasování</h3>
     <p>Počet hlasů: {{ event.votes.count }}</p>

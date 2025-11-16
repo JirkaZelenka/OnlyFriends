@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ sub_album.name }} - OnlyFriends{% endblock %}
+
+{% block content %}
+<div class="content-header">
+    <h2>{{ sub_album.name }}</h2>
+    <p><strong>V albu:</strong> <a href="{% url 'core:album_detail' sub_album.parent_album.id %}">{{ sub_album.parent_album.name }}</a></p>
+    <p><strong>Vytvořil:</strong> {{ sub_album.created_by.username }}</p>
+    {% if sub_album.description %}
+        <p>{{ sub_album.description }}</p>
+    {% endif %}
+    <div style="margin-top: 15px;">
+        <a href="{% url 'core:photo_create_sub_album' sub_album.id %}" class="btn">➕ Přidat foto</a>
+    </div>
+</div>
+
+{% if photos %}
+<div class="card-grid">
+    {% for photo in photos %}
+    <div class="card">
+        {% if photo.image %}
+            <img src="{{ photo.image.url }}" alt="{{ photo.caption }}" style="width: 100%; border-radius: 5px; margin-bottom: 10px;">
+        {% endif %}
+        {% if photo.caption %}
+            <p>{{ photo.caption }}</p>
+        {% endif %}
+        <div class="card-meta">
+            <small>📤 {{ photo.user.username }} • {{ photo.uploaded_at|date:"d.m.Y" }}</small>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    <h3>Zatím žádné fotky v tomto sub-albu</h3>
+    <p><a href="{% url 'core:photo_create_sub_album' sub_album.id %}" class="btn">Přidat první foto</a></p>
+</div>
+{% endif %}
+
+<a href="{% url 'core:album_detail' sub_album.parent_album.id %}" class="btn btn-secondary" style="margin-top: 20px;">← Zpět na album</a>
+{% endblock %}
+

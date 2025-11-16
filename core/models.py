@@ -95,9 +95,64 @@ class EventItinerary(models.Model):
         return f"{self.event.title} - {self.description}"
 
 
+class Album(models.Model):
+    """Photo album with intro photo, date, description, and visibility settings"""
+    VISIBILITY_CHOICES = [
+        ('event_attendees', 'Pouze účastníci akce'),
+        ('all_users', 'Všichni uživatelé'),
+        ('private', 'Soukromé (pouze vlastník)'),
+    ]
+    
+    name = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    intro_photo = models.ImageField(upload_to='albums/intro/', blank=True, null=True, help_text="Úvodní/obálková fotka")
+    date = models.DateField(null=True, blank=True)
+    event = models.ForeignKey(Event, on_delete=models.SET_NULL, null=True, blank=True, related_name='albums')
+    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='owned_albums')
+    visibility = models.CharField(max_length=20, choices=VISIBILITY_CHOICES, default='event_attendees')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-date', '-created_at']
+    
+    def __str__(self):
+        return self.name
+    
+    def can_view(self, user):
+        """Check if user can view this album"""
+        if self.owner == user:
+            return True
+        if self.visibility == 'all_users':
+            return True
+        if self.visibility == 'private':
+            return False
+        if self.visibility == 'event_attendees' and self.event:
+            # Check if user attended the event
+            return EventVote.objects.filter(event=self.event, user=user, vote=True).exists()
+        return False
+
+
+class SubAlbum(models.Model):
+    """Sub-album within an album, named by the user who created it"""
+    parent_album = models.ForeignKey(Album, on_delete=models.CASCADE, related_name='sub_albums')
+    name = models.CharField(max_length=200, help_text="Název sub-alba (např. jméno uživatele)")
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_sub_albums')
+    description = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['created_at']
+    
+    def __str__(self):
+        return f"{self.name} ({self.parent_album.name})"
+
+
 class Photo(models.Model):
-    """Photos from events - shared storage or links to albums"""
+    """Photos from events - can be in albums or standalone"""
     event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='photos', null=True, blank=True)
+    album = models.ForeignKey(Album, on_delete=models.CASCADE, related_name='photos', null=True, blank=True)
+    sub_album = models.ForeignKey(SubAlbum, on_delete=models.CASCADE, related_name='photos', null=True, blank=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='uploaded_photos')
     image = models.ImageField(upload_to='photos/', blank=True, null=True)
     album_link = models.URLField(blank=True, help_text="Link to external photo album")
@@ -105,6 +160,8 @@ class Photo(models.Model):
     uploaded_at = models.DateTimeField(auto_now_add=True)
     
     def __str__(self):
+        if self.album:
+            return f"Photo by {self.user.username} - {self.album.name}"
         return f"Photo by {self.user.username} - {self.event.title if self.event else 'General'}"
 
 

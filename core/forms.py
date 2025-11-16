@@ -2,7 +2,7 @@ from django import forms
 from django.contrib.auth.models import User
 from .models import (
     Event, EventVote, EventChecklistItem, EventItinerary,
-    Photo, MapLocation, WeatherAlert, CalendarEntry, RecurringEvent,
+    Photo, Album, SubAlbum, MapLocation, WeatherAlert, CalendarEntry, RecurringEvent,
     ChatMessage, Tip, Debt, UndercoverWordPair, UndercoverGame, Notification, UserProfile
 )
 
@@ -80,22 +80,112 @@ class EventItineraryForm(forms.ModelForm):
         }
 
 
+class AlbumForm(forms.ModelForm):
+    class Meta:
+        model = Album
+        fields = ['name', 'description', 'intro_photo', 'date', 'event', 'visibility']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Název alba'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'placeholder': 'Popis alba'}),
+            'intro_photo': forms.FileInput(attrs={'class': 'form-control'}),
+            'date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'event': forms.Select(attrs={'class': 'form-control'}),
+            'visibility': forms.Select(attrs={'class': 'form-control'}),
+        }
+        labels = {
+            'name': 'Název alba',
+            'description': 'Popis',
+            'intro_photo': 'Úvodní fotka',
+            'date': 'Datum',
+            'event': 'Akce (volitelné)',
+            'visibility': 'Viditelnost',
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Date prefilling is handled in the view
+
+
+class SubAlbumForm(forms.ModelForm):
+    class Meta:
+        model = SubAlbum
+        fields = ['name', 'description']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Název sub-alba (např. vaše jméno)'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+        }
+        labels = {
+            'name': 'Název sub-alba',
+            'description': 'Popis',
+        }
+
+
 class PhotoForm(forms.ModelForm):
     class Meta:
         model = Photo
-        fields = ['event', 'image', 'album_link', 'caption']
+        fields = ['event', 'album', 'sub_album', 'image', 'album_link', 'caption']
         widgets = {
             'event': forms.Select(attrs={'class': 'form-control'}),
+            'album': forms.Select(attrs={'class': 'form-control'}),
+            'sub_album': forms.Select(attrs={'class': 'form-control'}),
             'image': forms.FileInput(attrs={'class': 'form-control'}),
             'album_link': forms.URLInput(attrs={'class': 'form-control', 'placeholder': 'https://...'}),
             'caption': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         }
         labels = {
-            'event': 'Akce',
+            'event': 'Akce (volitelné)',
+            'album': 'Album (volitelné)',
+            'sub_album': 'Sub-album (volitelné)',
             'image': 'Obrázek',
-            'album_link': 'Odkaz na album',
+            'album_link': 'Odkaz na externí album',
             'caption': 'Popisek',
         }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Make fields optional
+        self.fields['event'].required = False
+        self.fields['album'].required = False
+        self.fields['sub_album'].required = False
+        self.fields['image'].required = False
+        self.fields['album_link'].required = False
+        
+        # Handle initial values from views
+        if 'initial' in kwargs:
+            if 'album' in kwargs['initial']:
+                album = kwargs['initial']['album']
+                if hasattr(album, 'id'):
+                    self.fields['album'].initial = album.id
+            if 'sub_album' in kwargs['initial']:
+                sub_album = kwargs['initial']['sub_album']
+                if hasattr(sub_album, 'id'):
+                    self.fields['sub_album'].initial = sub_album.id
+                    # Also set parent album
+                    if hasattr(sub_album, 'parent_album'):
+                        self.fields['album'].initial = sub_album.parent_album.id
+        
+        # Filter sub_albums based on selected album
+        album_id = None
+        if 'album' in self.data:
+            try:
+                album_id = int(self.data.get('album'))
+            except (ValueError, TypeError):
+                pass
+        elif self.instance and self.instance.album:
+            album_id = self.instance.album.id
+        elif 'initial' in kwargs and 'album' in kwargs['initial']:
+            album = kwargs['initial']['album']
+            if hasattr(album, 'id'):
+                album_id = album.id
+        elif 'initial' in kwargs and 'sub_album' in kwargs['initial']:
+            sub_album = kwargs['initial']['sub_album']
+            if hasattr(sub_album, 'parent_album'):
+                album_id = sub_album.parent_album.id
+        
+        if album_id:
+            self.fields['sub_album'].queryset = SubAlbum.objects.filter(parent_album_id=album_id)
+        else:
+            self.fields['sub_album'].queryset = SubAlbum.objects.none()
 
 
 class MapLocationForm(forms.ModelForm):

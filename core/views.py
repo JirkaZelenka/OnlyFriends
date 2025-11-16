@@ -5,12 +5,12 @@ from django.contrib import messages
 from django import forms
 from datetime import date
 from .models import (
-    Event, Photo, MapLocation, WeatherAlert, CalendarEntry, RecurringEvent,
+    Event, Photo, Album, SubAlbum, MapLocation, WeatherAlert, CalendarEntry, RecurringEvent,
     ChatMessage, Tip, Debt, UndercoverWordPair, UndercoverGame, Notification,
     EventVote, EventChecklistItem, EventItinerary
 )
 from .forms import (
-    EventForm, PhotoForm, MapLocationForm, CalendarEntryForm, RecurringEventForm,
+    EventForm, PhotoForm, AlbumForm, SubAlbumForm, MapLocationForm, CalendarEntryForm, RecurringEventForm,
     ChatMessageForm, TipForm, DebtForm, UndercoverWordPairForm,
     EventChecklistItemForm, EventItineraryForm
 )
@@ -127,6 +127,13 @@ def event_detail(request, event_id):
     except EventVote.DoesNotExist:
         pass
     
+    # Get albums for this event
+    albums = Album.objects.filter(event=event)
+    visible_albums = [album for album in albums if album.can_view(request.user)]
+    
+    # Check if event has photos
+    has_photos = Photo.objects.filter(event=event).exists() or albums.exists()
+    
     checklist_form = EventChecklistItemForm()
     itinerary_form = EventItineraryForm()
     
@@ -135,30 +142,194 @@ def event_detail(request, event_id):
         'user_vote': user_vote,
         'checklist_form': checklist_form,
         'itinerary_form': itinerary_form,
+        'albums': visible_albums,
+        'has_photos': has_photos,
     })
 
 
 @login_required
 def photos_list(request):
-    """Photo gallery"""
-    photos = Photo.objects.all().order_by('-uploaded_at')
-    return render(request, 'core/photos_list.html', {'photos': photos})
+    """Photo gallery with albums"""
+    # Get albums user can view
+    all_albums = Album.objects.all()
+    visible_albums = [album for album in all_albums if album.can_view(request.user)]
+    
+    # Get standalone photos (not in albums)
+    standalone_photos = Photo.objects.filter(album=None).order_by('-uploaded_at')
+    
+    return render(request, 'core/photos_list.html', {
+        'albums': visible_albums,
+        'standalone_photos': standalone_photos
+    })
 
 
 @login_required
-def photo_create(request):
+def album_detail(request, album_id):
+    """Album detail page with photos and sub-albums"""
+    album = get_object_or_404(Album, id=album_id)
+    
+    # Check if user can view
+    if not album.can_view(request.user):
+        messages.error(request, 'Nemáte oprávnění zobrazit toto album.')
+        return redirect('core:photos_list')
+    
+    # Get photos in this album (not in sub-albums)
+    photos = album.photos.filter(sub_album=None).order_by('-uploaded_at')
+    sub_albums = album.sub_albums.all()
+    
+    return render(request, 'core/album_detail.html', {
+        'album': album,
+        'photos': photos,
+        'sub_albums': sub_albums
+    })
+
+
+@login_required
+def sub_album_detail(request, sub_album_id):
+    """Sub-album detail page"""
+    sub_album = get_object_or_404(SubAlbum, id=sub_album_id)
+    
+    # Check if user can view parent album
+    if not sub_album.parent_album.can_view(request.user):
+        messages.error(request, 'Nemáte oprávnění zobrazit toto sub-album.')
+        return redirect('core:photos_list')
+    
+    photos = sub_album.photos.all().order_by('-uploaded_at')
+    
+    return render(request, 'core/sub_album_detail.html', {
+        'sub_album': sub_album,
+        'photos': photos
+    })
+
+
+@login_required
+def album_create(request, event_id=None):
+    """Create a new album"""
+    event = None
+    if event_id:
+        event = get_object_or_404(Event, id=event_id)
+    
+    if request.method == 'POST':
+        form = AlbumForm(request.POST, request.FILES)
+        if form.is_valid():
+            album = form.save(commit=False)
+            album.owner = request.user
+            # If event is provided and date is not set, use event start date
+            if event and not album.date and event.start_date:
+                album.date = event.start_date.date()
+            album.save()
+            messages.success(request, 'Album bylo úspěšně vytvořeno!')
+            return redirect('core:album_detail', album_id=album.id)
+    else:
+        initial = {}
+        if event:
+            initial['event'] = event.id
+            # Prefill date from event start date
+            if event.start_date:
+                initial['date'] = event.start_date.date()
+        form = AlbumForm(initial=initial)
+    
+    return render(request, 'core/album_form.html', {'form': form, 'title': 'Nové album', 'event': event})
+
+
+@login_required
+def album_edit(request, album_id):
+    """Edit an album"""
+    album = get_object_or_404(Album, id=album_id)
+    
+    # Only owner can edit
+    if album.owner != request.user:
+        messages.error(request, 'Můžete upravovat pouze vlastní alba.')
+        return redirect('core:album_detail', album_id=album.id)
+    
+    if request.method == 'POST':
+        form = AlbumForm(request.POST, request.FILES, instance=album)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Album bylo upraveno!')
+            return redirect('core:album_detail', album_id=album.id)
+    else:
+        form = AlbumForm(instance=album)
+    return render(request, 'core/album_form.html', {'form': form, 'album': album, 'title': 'Upravit album'})
+
+
+@login_required
+def sub_album_create(request, album_id):
+    """Create a sub-album within an album"""
+    album = get_object_or_404(Album, id=album_id)
+    
+    # Check if user can view the album
+    if not album.can_view(request.user):
+        messages.error(request, 'Nemáte oprávnění vytvořit sub-album v tomto albu.')
+        return redirect('core:photos_list')
+    
+    if request.method == 'POST':
+        form = SubAlbumForm(request.POST)
+        if form.is_valid():
+            sub_album = form.save(commit=False)
+            sub_album.parent_album = album
+            sub_album.created_by = request.user
+            sub_album.save()
+            messages.success(request, 'Sub-album bylo vytvořeno!')
+            return redirect('core:album_detail', album_id=album.id)
+    else:
+        form = SubAlbumForm()
+    return render(request, 'core/sub_album_form.html', {'form': form, 'album': album, 'title': 'Nový sub-album'})
+
+
+@login_required
+def photo_create(request, album_id=None, sub_album_id=None):
     """Add a new photo"""
+    album = None
+    sub_album = None
+    redirect_url = 'core:photos_list'
+    
+    if album_id:
+        album = get_object_or_404(Album, id=album_id)
+        if not album.can_view(request.user):
+            messages.error(request, 'Nemáte oprávnění přidat foto do tohoto alba.')
+            return redirect('core:photos_list')
+        redirect_url = 'core:album_detail'
+        redirect_id = album.id
+    elif sub_album_id:
+        sub_album = get_object_or_404(SubAlbum, id=sub_album_id)
+        if not sub_album.parent_album.can_view(request.user):
+            messages.error(request, 'Nemáte oprávnění přidat foto do tohoto sub-alba.')
+            return redirect('core:photos_list')
+        album = sub_album.parent_album
+        redirect_url = 'core:sub_album_detail'
+        redirect_id = sub_album.id
+    
     if request.method == 'POST':
         form = PhotoForm(request.POST, request.FILES)
         if form.is_valid():
             photo = form.save(commit=False)
             photo.user = request.user
+            if album:
+                photo.album = album
+            if sub_album:
+                photo.sub_album = sub_album
             photo.save()
             messages.success(request, 'Foto bylo úspěšně přidáno!')
+            if sub_album:
+                return redirect('core:sub_album_detail', sub_album_id=sub_album.id)
+            elif album:
+                return redirect('core:album_detail', album_id=album.id)
             return redirect('core:photos_list')
     else:
-        form = PhotoForm()
-    return render(request, 'core/photo_form.html', {'form': form, 'title': 'Přidat foto'})
+        initial = {}
+        if album:
+            initial['album'] = album
+        if sub_album:
+            initial['sub_album'] = sub_album
+        form = PhotoForm(initial=initial)
+    
+    return render(request, 'core/photo_form.html', {
+        'form': form, 
+        'title': 'Přidat foto',
+        'album': album,
+        'sub_album': sub_album
+    })
 
 
 @login_required

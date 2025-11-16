@@ -29,6 +29,9 @@
         {% if event.start_date %}
             <p><strong>📅 Datum:</strong> {{ event.start_date|date:"d.m.Y H:i" }}</p>
         {% endif %}
+        {% if event.albums.exists or event.photos.exists %}
+            <p><span class="badge badge-info">📸 Má fotky</span></p>
+        {% endif %}
         <div class="card-meta">
             <a href="{% url 'core:event_detail' event.id %}" class="btn">Zobrazit detail</a>
             <a href="{% url 'core:event_edit' event.id %}" class="btn btn-secondary" style="margin-left: 10px;">✏️ Upravit</a>

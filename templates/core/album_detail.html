@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ album.name }} - OnlyFriends{% endblock %}
+
+{% block content %}
+<div class="content-header">
+    <h2>{{ album.name }}</h2>
+    {% if album.event %}
+        <p><strong>Akce:</strong> {{ album.event.title }}</p>
+    {% endif %}
+    {% if album.date %}
+        <p><strong>Datum:</strong> {{ album.date|date:"d.m.Y" }}</p>
+    {% endif %}
+    <p><strong>Vlastník:</strong> {{ album.owner.username }} • <strong>Viditelnost:</strong> {{ album.get_visibility_display }}</p>
+    {% if album.description %}
+        <p>{{ album.description }}</p>
+    {% endif %}
+    <div style="margin-top: 15px;">
+        {% if album.owner == user %}
+            <a href="{% url 'core:album_edit' album.id %}" class="btn btn-secondary">✏️ Upravit album</a>
+        {% endif %}
+        <a href="{% url 'core:sub_album_create' album.id %}" class="btn">➕ Vytvořit sub-album</a>
+        <a href="{% url 'core:photo_create_album' album.id %}" class="btn" style="margin-left: 10px;">➕ Přidat foto</a>
+    </div>
+</div>
+
+{% if sub_albums %}
+<div class="card" style="margin-bottom: 30px;">
+    <h3>📂 Sub-alba</h3>
+    <div class="card-grid">
+        {% for sub_album in sub_albums %}
+        <div class="card">
+            <h3>{{ sub_album.name }}</h3>
+            {% if sub_album.description %}
+                <p>{{ sub_album.description|truncatewords:10 }}</p>
+            {% endif %}
+            <p><small>Vytvořil: {{ sub_album.created_by.username }}</small></p>
+            <p><small>Fotek: {{ sub_album.photos.count }}</small></p>
+            <div class="card-meta">
+                <a href="{% url 'core:sub_album_detail' sub_album.id %}" class="btn">Zobrazit sub-album</a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+{% if photos %}
+<div class="card">
+    <h3>📸 Fotky v albu</h3>
+    <div class="card-grid">
+        {% for photo in photos %}
+        <div class="card">
+            {% if photo.image %}
+                <img src="{{ photo.image.url }}" alt="{{ photo.caption }}" style="width: 100%; border-radius: 5px; margin-bottom: 10px;">
+            {% endif %}
+            {% if photo.caption %}
+                <p>{{ photo.caption }}</p>
+            {% endif %}
+            <div class="card-meta">
+                <small>📤 {{ photo.user.username }} • {{ photo.uploaded_at|date:"d.m.Y" }}</small>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% else %}
+<div class="empty-state">
+    <h3>Zatím žádné fotky v tomto albu</h3>
+    <p><a href="{% url 'core:photo_create_album' album.id %}" class="btn">Přidat první foto</a></p>
+</div>
+{% endif %}
+
+<a href="{% url 'core:photos_list' %}" class="btn btn-secondary" style="margin-top: 20px;">← Zpět na seznam</a>
+{% endblock %}
+
