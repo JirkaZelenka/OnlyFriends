@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block title %}Smazat událost - OnlyFriends{% endblock %}
+
+{% block content %}
+<div class="content-header">
+    <h2>⚠️ Smazat událost</h2>
+</div>
+
+<div class="card" style="max-width: 600px; margin: 0 auto;">
+    <h3>Opravdu chcete smazat událost "{{ event.title }}"?</h3>
+    <p style="color: #dc3545; margin: 20px 0;">Tato akce je nevratná! Všechna data související s touto událostí budou smazána.</p>
+    
+    <form method="post" style="margin-top: 30px;">
+        {% csrf_token %}
+        <div style="display: flex; gap: 10px;">
+            <button type="submit" class="btn btn-danger">Ano, smazat</button>
+            <a href="{% url 'core:event_detail' event.id %}" class="btn btn-secondary">Zrušit</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+

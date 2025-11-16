@@ -6,6 +6,7 @@
 <div class="content-header">
     <h2>📆 Kalendář</h2>
     <p>Dostupnost a vybookované prázdniny</p>
+    <a href="{% url 'core:calendar_entry_create' %}" class="btn">➕ Přidat záznam</a>
 </div>
 
 {% if entries %}
@@ -21,6 +22,9 @@
             {% if entry.note %}
                 <p><em>{{ entry.note }}</em></p>
             {% endif %}
+            <div style="margin-top: 10px;">
+                <a href="{% url 'core:calendar_entry_edit' entry.id %}" class="btn btn-secondary" style="font-size: 0.9rem; padding: 5px 10px;">✏️ Upravit</a>
+            </div>
         </div>
     </li>
     {% endfor %}

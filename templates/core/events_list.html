@@ -6,6 +6,7 @@
 <div class="content-header">
     <h2>📅 Události</h2>
     <p>Všechny plánované a proběhlé akce</p>
+    <a href="{% url 'core:event_create' %}" class="btn">➕ Přidat novou událost</a>
 </div>
 
 {% if events %}
@@ -30,6 +31,7 @@
         {% endif %}
         <div class="card-meta">
             <a href="{% url 'core:event_detail' event.id %}" class="btn">Zobrazit detail</a>
+            <a href="{% url 'core:event_edit' event.id %}" class="btn btn-secondary" style="margin-left: 10px;">✏️ Upravit</a>
         </div>
     </div>
     {% endfor %}
@@ -37,7 +39,7 @@
 {% else %}
 <div class="empty-state">
     <h3>Zatím žádné události</h3>
-    <p>Vytvořte první událost v admin panelu.</p>
+    <p><a href="{% url 'core:event_create' %}" class="btn">Vytvořit první událost</a></p>
 </div>
 {% endif %}
 {% endblock %}

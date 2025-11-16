@@ -28,5 +28,19 @@
     <p>Začněte konverzaci!</p>
 </div>
 {% endif %}
+
+<div class="card" style="margin-top: 20px;">
+    <h3>Napsat zprávu</h3>
+    <form method="post">
+        {% csrf_token %}
+        <div class="form-group">
+            {{ form.message }}
+            {% if form.message.errors %}
+                <div style="color: red; font-size: 0.9rem; margin-top: 5px;">{{ form.message.errors }}</div>
+            {% endif %}
+        </div>
+        <button type="submit" class="btn">Odeslat</button>
+    </form>
+</div>
 {% endblock %}
 

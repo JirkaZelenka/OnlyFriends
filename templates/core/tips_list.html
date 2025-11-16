@@ -6,6 +6,7 @@
 <div class="content-header">
     <h2>💡 Tipy</h2>
     <p>Tipy na výlety, restaurace a dobrá místa</p>
+    <a href="{% url 'core:tip_create' %}" class="btn">➕ Přidat tip</a>
 </div>
 
 {% if tips %}
@@ -23,6 +24,9 @@
         {% endif %}
         <div class="card-meta">
             <small>💡 {{ tip.user.username }} • {{ tip.created_at|date:"d.m.Y" }}</small>
+            <div style="margin-top: 10px;">
+                <a href="{% url 'core:tip_edit' tip.id %}" class="btn btn-secondary" style="font-size: 0.9rem; padding: 5px 10px;">✏️ Upravit</a>
+            </div>
         </div>
     </div>
     {% endfor %}

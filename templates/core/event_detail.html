@@ -10,6 +10,10 @@
     {% else %}
         <span class="event-type-public">🌍 Veřejná akce</span>
     {% endif %}
+    <div style="margin-top: 15px;">
+        <a href="{% url 'core:event_edit' event.id %}" class="btn btn-secondary">✏️ Upravit</a>
+        <a href="{% url 'core:event_delete' event.id %}" class="btn btn-danger" style="margin-left: 10px;">🗑️ Smazat</a>
+    </div>
 </div>
 
 <div class="card">
@@ -40,6 +44,22 @@
 <div class="card">
     <h3>🗳️ Hlasování</h3>
     <p>Počet hlasů: {{ event.votes.count }}</p>
+    
+    <form method="post" style="margin-bottom: 20px;">
+        {% csrf_token %}
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <label style="display: flex; align-items: center; gap: 5px;">
+                <input type="radio" name="vote" value="true" {% if user_vote == True %}checked{% endif %}>
+                ✓ Přijdu
+            </label>
+            <label style="display: flex; align-items: center; gap: 5px;">
+                <input type="radio" name="vote" value="false" {% if user_vote == False %}checked{% endif %}>
+                ✗ Nepřijdu
+            </label>
+            <button type="submit" class="btn" style="margin-left: 10px;">Hlasovat</button>
+        </div>
+    </form>
+    
     <ul class="info-list">
         {% for vote in event.votes.all %}
         <li>
@@ -56,6 +76,15 @@
 
 <div class="card">
     <h3>✅ Checklist</h3>
+    
+    <form method="post" style="margin-bottom: 20px;">
+        {% csrf_token %}
+        <div class="form-group">
+            <input type="text" name="checklist_text" class="form-control" placeholder="Nová položka checklistu" required>
+        </div>
+        <button type="submit" class="btn">Přidat</button>
+    </form>
+    
     <ul class="info-list">
         {% for item in event.checklist_items.all %}
         <li>
@@ -63,6 +92,9 @@
             <span class="badge {% if item.completed %}badge-success{% else %}badge-warning{% endif %}">
                 {% if item.completed %}Hotovo{% else %}K vyřízení{% endif %}
             </span>
+            {% if item.assigned_to %}
+                <small>({{ item.assigned_to.username }})</small>
+            {% endif %}
         </li>
         {% empty %}
         <li>Žádné položky v checklistu</li>
@@ -72,6 +104,16 @@
 
 <div class="card">
     <h3>📋 Itinerář</h3>
+    
+    <form method="post" style="margin-bottom: 20px;">
+        {% csrf_token %}
+        <div class="form-group">
+            <input type="time" name="itinerary_time" class="form-control" style="width: auto; display: inline-block; margin-right: 10px;">
+            <input type="text" name="itinerary_description" class="form-control" placeholder="Popis" style="width: auto; display: inline-block;" required>
+        </div>
+        <button type="submit" class="btn">Přidat</button>
+    </form>
+    
     <ul class="info-list">
         {% for item in event.itinerary_items.all %}
         <li>
@@ -85,8 +127,17 @@
 
 <div class="card">
     <h3>💬 Chat k akci</h3>
+    
+    <form method="post" style="margin-bottom: 20px;">
+        {% csrf_token %}
+        <div class="form-group">
+            <textarea name="chat_message" class="form-control" rows="3" placeholder="Napište zprávu..." required></textarea>
+        </div>
+        <button type="submit" class="btn">Odeslat</button>
+    </form>
+    
     <ul class="info-list">
-        {% for message in event.chat_messages.all|slice:":10" %}
+        {% for message in event.chat_messages.all|slice:":20" %}
         <li>
             <div>
                 <strong>{{ message.user.username }}</strong> ({{ message.created_at|date:"d.m.Y H:i" }})

@@ -6,6 +6,7 @@
 <div class="content-header">
     <h2>🔄 Pravidelné akce</h2>
     <p>Pravidelné akce každý rok (Tři jezy, Povaleč, atd.)</p>
+    <a href="{% url 'core:recurring_event_create' %}" class="btn">➕ Přidat pravidelnou akci</a>
 </div>
 
 {% if events %}
@@ -20,6 +21,9 @@
         {% if event.description %}
             <p>{{ event.description }}</p>
         {% endif %}
+        <div class="card-meta">
+            <a href="{% url 'core:recurring_event_edit' event.id %}" class="btn btn-secondary" style="font-size: 0.9rem; padding: 5px 10px;">✏️ Upravit</a>
+        </div>
     </div>
     {% endfor %}
 </div>

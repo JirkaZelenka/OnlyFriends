@@ -6,6 +6,7 @@
 <div class="content-header">
     <h2>📸 Fotky</h2>
     <p>Sdílené fotky z akcí a odkazy na fotoalba</p>
+    <a href="{% url 'core:photo_create' %}" class="btn">➕ Přidat foto</a>
 </div>
 
 {% if photos %}
@@ -25,6 +26,9 @@
         {% endif %}
         <div class="card-meta">
             <small>📤 {{ photo.user.username }} • {{ photo.uploaded_at|date:"d.m.Y" }}</small>
+            <div style="margin-top: 10px;">
+                <a href="{% url 'core:photo_edit' photo.id %}" class="btn btn-secondary" style="font-size: 0.9rem; padding: 5px 10px;">✏️ Upravit</a>
+            </div>
         </div>
     </div>
     {% endfor %}

@@ -6,6 +6,7 @@
 <div class="content-header">
     <h2>🗺️ Mapy</h2>
     <p>Plánování výletů a ukládání míst do backlogu</p>
+    <a href="{% url 'core:map_create' %}" class="btn">➕ Přidat místo</a>
 </div>
 
 {% if locations %}
@@ -26,6 +27,9 @@
         {% endif %}
         <div class="card-meta">
             <small>{{ location.created_at|date:"d.m.Y" }}</small>
+            <div style="margin-top: 10px;">
+                <a href="{% url 'core:map_edit' location.id %}" class="btn btn-secondary" style="font-size: 0.9rem; padding: 5px 10px;">✏️ Upravit</a>
+            </div>
         </div>
     </div>
     {% endfor %}

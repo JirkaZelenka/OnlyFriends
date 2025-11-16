@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+
+{% block title %}Vyrovnat dluh - OnlyFriends{% endblock %}
+
+{% block content %}
+<div class="content-header">
+    <h2>✅ Vyrovnat dluh</h2>
+</div>
+
+<div class="card" style="max-width: 600px; margin: 0 auto;">
+    <h3>Označit dluh jako vyrovnaný?</h3>
+    <p><strong>{{ debt.payer.username }}</strong> dluží <strong>{{ debt.recipient.username }}</strong> <strong>{{ debt.amount }} Kč</strong></p>
+    {% if debt.description %}
+        <p><em>{{ debt.description }}</em></p>
+    {% endif %}
+    
+    <form method="post" style="margin-top: 30px;">
+        {% csrf_token %}
+        <div style="display: flex; gap: 10px;">
+            <button type="submit" class="btn">Ano, označit jako vyrovnaný</button>
+            <a href="{% url 'core:debts_list' %}" class="btn btn-secondary">Zrušit</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+

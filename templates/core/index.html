@@ -6,6 +6,12 @@
 <div class="content-header">
     <h2>Vítejte v OnlyFriends!</h2>
     <p>Aplikace pro správu akcí a aktivit skupiny přátel.</p>
+    {% if not user.is_authenticated %}
+        <div style="background: #fff3cd; padding: 15px; border-radius: 5px; margin-top: 15px; border-left: 4px solid #ffc107;">
+            <strong>⚠️ Pro přístup k funkcím se prosím <a href="{% url 'login' %}">přihlaste</a>.</strong>
+            <p style="margin: 5px 0 0 0; font-size: 0.9rem;">Pokud nemáte účet, vytvořte si ho v <a href="/admin/">admin panelu</a>.</p>
+        </div>
+    {% endif %}
 </div>
 
 <div class="card-grid">

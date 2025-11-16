@@ -15,7 +15,11 @@
                 <div class="user-info">
                     <span>Ahoj, <strong>{{ user.username }}</strong>!</span>
                     <a href="/admin/" class="admin-link">Admin</a>
-                    <a href="/admin/logout/" class="logout-link">Odhlásit</a>
+                    <a href="{% url 'logout' %}" class="logout-link">Odhlásit</a>
+                </div>
+            {% else %}
+                <div class="user-info">
+                    <a href="{% url 'login' %}" class="admin-link">Přihlásit se</a>
                 </div>
             {% endif %}
         </div>
@@ -42,6 +46,14 @@
     </nav>
 
     <main class="container">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert {% if message.tags == 'error' %}alert-danger{% elif message.tags == 'success' %}alert-success{% else %}alert-info{% endif %}" style="margin-top: 20px;">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+        
         {% block content %}
         {% endblock %}
     </main>

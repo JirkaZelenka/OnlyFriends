@@ -6,6 +6,7 @@
 <div class="content-header">
     <h2>💰 Dluhy (Tricount)</h2>
     <p>Vypořádání dluhů mezi členy skupiny</p>
+    <a href="{% url 'core:debt_create' %}" class="btn">➕ Přidat dluh</a>
 </div>
 
 {% if debts %}
@@ -26,6 +27,11 @@
                     <p><small>Akce: {{ debt.event.title }}</small></p>
                 {% endif %}
                 <p><small>{{ debt.created_at|date:"d.m.Y" }}</small></p>
+                {% if not debt.settled %}
+                    <div style="margin-top: 10px;">
+                        <a href="{% url 'core:debt_settle' debt.id %}" class="btn" style="font-size: 0.9rem; padding: 5px 10px;">✅ Označit jako vyrovnaný</a>
+                    </div>
+                {% endif %}
             </div>
         </li>
         {% endfor %}
