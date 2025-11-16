@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+
+{% block title %}Dluhy - OnlyFriends{% endblock %}
+
+{% block content %}
+<div class="content-header">
+    <h2>💰 Dluhy (Tricount)</h2>
+    <p>Vypořádání dluhů mezi členy skupiny</p>
+</div>
+
+{% if debts %}
+<div class="card">
+    <ul class="info-list">
+        {% for debt in debts %}
+        <li>
+            <div>
+                <strong>{{ debt.payer.username }}</strong> dluží <strong>{{ debt.recipient.username }}</strong>
+                <span class="badge badge-{% if debt.settled %}success{% else %}danger{% endif %}">
+                    {{ debt.amount }} Kč
+                    {% if debt.settled %}✓ Vyrovnáno{% else %}⚠ Nevyrovnáno{% endif %}
+                </span>
+                {% if debt.description %}
+                    <p><em>{{ debt.description }}</em></p>
+                {% endif %}
+                {% if debt.event %}
+                    <p><small>Akce: {{ debt.event.title }}</small></p>
+                {% endif %}
+                <p><small>{{ debt.created_at|date:"d.m.Y" }}</small></p>
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% else %}
+<div class="empty-state">
+    <h3>Žádné dluhy</h3>
+    <p>Všechno je vyrovnáno! 🎉</p>
+</div>
+{% endif %}
+{% endblock %}
+

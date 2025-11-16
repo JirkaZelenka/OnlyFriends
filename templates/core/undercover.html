@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+
+{% block title %}Undercover - OnlyFriends{% endblock %}
+
+{% block content %}
+<div class="content-header">
+    <h2>🎮 Undercover</h2>
+    <p>Generátor dvojic slov pro hru Undercover (CZ i ENG)</p>
+</div>
+
+<div class="card">
+    <h3>📚 Balíček slov</h3>
+    {% if word_pairs %}
+    <ul class="info-list">
+        {% for pair in word_pairs %}
+        <li>
+            <strong>{{ pair.word1 }}</strong> / <strong>{{ pair.word2 }}</strong>
+            <span class="badge badge-info">{{ pair.get_language_display }}</span>
+            {% if pair.added_by %}
+                <small>(přidal: {{ pair.added_by.username }})</small>
+            {% endif %}
+        </li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p>Zatím žádné dvojice slov. Přidejte je v admin panelu.</p>
+    {% endif %}
+</div>
+
+{% if games %}
+<div class="card">
+    <h3>🎲 Aktivní hry</h3>
+    <ul class="info-list">
+        {% for game in games %}
+        <li>
+            <strong>Hra od {{ game.created_by.username }}</strong>
+            <span class="badge badge-success">Aktivní</span>
+            <p>Počet dvojic: {{ game.word_pairs.count }}</p>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+{% endblock %}
+

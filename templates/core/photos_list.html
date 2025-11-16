@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% block title %}Fotky - OnlyFriends{% endblock %}
+
+{% block content %}
+<div class="content-header">
+    <h2>📸 Fotky</h2>
+    <p>Sdílené fotky z akcí a odkazy na fotoalba</p>
+</div>
+
+{% if photos %}
+<div class="card-grid">
+    {% for photo in photos %}
+    <div class="card">
+        {% if photo.image %}
+            <img src="{{ photo.image.url }}" alt="{{ photo.caption }}" style="width: 100%; border-radius: 5px; margin-bottom: 10px;">
+        {% elif photo.album_link %}
+            <p><a href="{{ photo.album_link }}" target="_blank" class="btn">🔗 Otevřít album</a></p>
+        {% endif %}
+        {% if photo.caption %}
+            <p>{{ photo.caption }}</p>
+        {% endif %}
+        {% if photo.event %}
+            <p><strong>Akce:</strong> {{ photo.event.title }}</p>
+        {% endif %}
+        <div class="card-meta">
+            <small>📤 {{ photo.user.username }} • {{ photo.uploaded_at|date:"d.m.Y" }}</small>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    <h3>Zatím žádné fotky</h3>
+    <p>Přidejte fotky v admin panelu.</p>
+</div>
+{% endif %}
+{% endblock %}
+

@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+
+{% block title %}Tipy - OnlyFriends{% endblock %}
+
+{% block content %}
+<div class="content-header">
+    <h2>💡 Tipy</h2>
+    <p>Tipy na výlety, restaurace a dobrá místa</p>
+</div>
+
+{% if tips %}
+<div class="card-grid">
+    {% for tip in tips %}
+    <div class="card">
+        <h3>{{ tip.title }}</h3>
+        <span class="badge badge-info">{{ tip.get_tip_type_display }}</span>
+        <p>{{ tip.description|truncatewords:20 }}</p>
+        {% if tip.location %}
+            <p><strong>📍 Místo:</strong> {{ tip.location }}</p>
+        {% endif %}
+        {% if tip.link %}
+            <p><a href="{{ tip.link }}" target="_blank" class="btn btn-secondary">🔗 Otevřít odkaz</a></p>
+        {% endif %}
+        <div class="card-meta">
+            <small>💡 {{ tip.user.username }} • {{ tip.created_at|date:"d.m.Y" }}</small>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    <h3>Zatím žádné tipy</h3>
+    <p>Přidejte tipy v admin panelu.</p>
+</div>
+{% endif %}
+{% endblock %}
+

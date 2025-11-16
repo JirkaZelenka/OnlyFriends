@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+
+{% block title %}Pravidelné akce - OnlyFriends{% endblock %}
+
+{% block content %}
+<div class="content-header">
+    <h2>🔄 Pravidelné akce</h2>
+    <p>Pravidelné akce každý rok (Tři jezy, Povaleč, atd.)</p>
+</div>
+
+{% if events %}
+<div class="card-grid">
+    {% for event in events %}
+    <div class="card">
+        <h3>{{ event.name }}</h3>
+        <p><strong>📅 Datum:</strong> {{ event.day }}.{{ event.month }}. (každý rok)</p>
+        {% if event.location %}
+            <p><strong>📍 Místo:</strong> {{ event.location }}</p>
+        {% endif %}
+        {% if event.description %}
+            <p>{{ event.description }}</p>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    <h3>Zatím žádné pravidelné akce</h3>
+    <p>Přidejte pravidelné akce v admin panelu.</p>
+</div>
+{% endif %}
+{% endblock %}
+

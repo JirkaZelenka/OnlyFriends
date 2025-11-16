@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+
+{% block title %}Narozeniny - OnlyFriends{% endblock %}
+
+{% block content %}
+<div class="content-header">
+    <h2>🎂 Narozeniny</h2>
+    <p>Narozeniny lidí, hlavně kulatiny</p>
+</div>
+
+{% if users_data %}
+<div class="card-grid">
+    {% for data in users_data %}
+    <div class="card">
+        <h3>{{ data.user.username }}</h3>
+        <p><strong>📅 Narozeniny:</strong> {{ data.user.profile.birthday|date:"d.m.Y" }}</p>
+        {% if data.is_round %}
+            <span class="badge badge-primary">🎉 {{ data.age }} let - KULATINA!</span>
+        {% else %}
+            <span class="badge badge-info">{{ data.age }} let</span>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    <h3>Zatím žádné narozeniny</h3>
+    <p>Přidejte narozeniny v admin panelu (User Profile).</p>
+</div>
+{% endif %}
+{% endblock %}
+

@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+
+{% block title %}OnlyFriends - Domů{% endblock %}
+
+{% block content %}
+<div class="content-header">
+    <h2>Vítejte v OnlyFriends!</h2>
+    <p>Aplikace pro správu akcí a aktivit skupiny přátel.</p>
+</div>
+
+<div class="card-grid">
+    <div class="card">
+        <h3>📅 Události</h3>
+        <p>Správa všech akcí, hlasování, organizace a plánování.</p>
+        <a href="{% url 'core:events_list' %}" class="btn">Zobrazit události</a>
+    </div>
+    
+    <div class="card">
+        <h3>📸 Fotky</h3>
+        <p>Sdílené fotky z akcí a odkazů na fotoalba.</p>
+        <a href="{% url 'core:photos_list' %}" class="btn">Zobrazit fotky</a>
+    </div>
+    
+    <div class="card">
+        <h3>🗺️ Mapy</h3>
+        <p>Plánování výletů, ukládání míst do backlogu (Ferraty, atd.).</p>
+        <a href="{% url 'core:maps_list' %}" class="btn">Zobrazit mapy</a>
+    </div>
+    
+    <div class="card">
+        <h3>🌤️ Počasí</h3>
+        <p>Hlídání požárů, silného větru a dalších varování.</p>
+        <a href="{% url 'core:weather_alerts' %}" class="btn">Zobrazit varování</a>
+    </div>
+    
+    <div class="card">
+        <h3>📆 Kalendář</h3>
+        <p>Zápis volna a vybookovaných prázdnin.</p>
+        <a href="{% url 'core:calendar_view' %}" class="btn">Zobrazit kalendář</a>
+    </div>
+    
+    <div class="card">
+        <h3>🔄 Pravidelné akce</h3>
+        <p>Pravidelné akce každý rok (Tři jezy, Povaleč).</p>
+        <a href="{% url 'core:recurring_events' %}" class="btn">Zobrazit akce</a>
+    </div>
+    
+    <div class="card">
+        <h3>🎂 Narozeniny</h3>
+        <p>Narozeniny lidí, hlavně kulatiny.</p>
+        <a href="{% url 'core:birthdays' %}" class="btn">Zobrazit narozeniny</a>
+    </div>
+    
+    <div class="card">
+        <h3>💬 Chat</h3>
+        <p>Obecný chat a chat ke každé akci.</p>
+        <a href="{% url 'core:chat' %}" class="btn">Otevřít chat</a>
+    </div>
+    
+    <div class="card">
+        <h3>💡 Tipy</h3>
+        <p>Tipy na výlety, restaurace a dobrá místa.</p>
+        <a href="{% url 'core:tips_list' %}" class="btn">Zobrazit tipy</a>
+    </div>
+    
+    <div class="card">
+        <h3>💰 Dluhy</h3>
+        <p>Tricount - vypořádání dluhů s QR kódy.</p>
+        <a href="{% url 'core:debts_list' %}" class="btn">Zobrazit dluhy</a>
+    </div>
+    
+    <div class="card">
+        <h3>🎮 Undercover</h3>
+        <p>Generátor dvojic slov pro hru Undercover (CZ i ENG).</p>
+        <a href="{% url 'core:undercover' %}" class="btn">Otevřít hru</a>
+    </div>
+    
+    <div class="card">
+        <h3>🔔 Notifikace</h3>
+        <p>Všechny notifikace a upozornění.</p>
+        <a href="{% url 'core:notifications' %}" class="btn">Zobrazit notifikace</a>
+    </div>
+</div>
+{% endblock %}
+

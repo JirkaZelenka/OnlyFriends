@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+
+{% block title %}Chat - OnlyFriends{% endblock %}
+
+{% block content %}
+<div class="content-header">
+    <h2>💬 Obecný chat</h2>
+    <p>Chat pro všechny členy skupiny</p>
+</div>
+
+{% if messages %}
+<div class="card">
+    <ul class="info-list">
+        {% for message in messages %}
+        <li>
+            <div>
+                <strong>{{ message.user.username }}</strong>
+                <span style="color: #999; font-size: 0.9rem;">{{ message.created_at|date:"d.m.Y H:i" }}</span>
+                <p style="margin-top: 5px;">{{ message.message }}</p>
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% else %}
+<div class="empty-state">
+    <h3>Zatím žádné zprávy</h3>
+    <p>Začněte konverzaci!</p>
+</div>
+{% endif %}
+{% endblock %}
+

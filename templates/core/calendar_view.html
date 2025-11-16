@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+
+{% block title %}Kalendář - OnlyFriends{% endblock %}
+
+{% block content %}
+<div class="content-header">
+    <h2>📆 Kalendář</h2>
+    <p>Dostupnost a vybookované prázdniny</p>
+</div>
+
+{% if entries %}
+<ul class="info-list">
+    {% for entry in entries %}
+    <li>
+        <div>
+            <strong>{{ entry.user.username }}</strong>
+            <span class="badge badge-{% if entry.entry_type == 'available' %}success{% elif entry.entry_type == 'booked' %}danger{% else %}warning{% endif %}">
+                {{ entry.get_entry_type_display }}
+            </span>
+            <p>{{ entry.start_date|date:"d.m.Y" }} - {{ entry.end_date|date:"d.m.Y" }}</p>
+            {% if entry.note %}
+                <p><em>{{ entry.note }}</em></p>
+            {% endif %}
+        </div>
+    </li>
+    {% endfor %}
+</ul>
+{% else %}
+<div class="empty-state">
+    <h3>Zatím žádné záznamy</h3>
+    <p>Přidejte záznamy v admin panelu.</p>
+</div>
+{% endif %}
+{% endblock %}
+

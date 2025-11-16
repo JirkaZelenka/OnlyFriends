@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}OnlyFriends{% endblock %}</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1 class="logo">OnlyFriends</h1>
+            {% if user.is_authenticated %}
+                <div class="user-info">
+                    <span>Ahoj, <strong>{{ user.username }}</strong>!</span>
+                    <a href="/admin/" class="admin-link">Admin</a>
+                    <a href="/admin/logout/" class="logout-link">Odhlásit</a>
+                </div>
+            {% endif %}
+        </div>
+    </header>
+
+    <nav class="main-nav">
+        <div class="container">
+            <ul class="nav-menu">
+                <li><a href="{% url 'core:index' %}" class="{% if request.resolver_match.url_name == 'index' %}active{% endif %}">🏠 Domů</a></li>
+                <li><a href="{% url 'core:events_list' %}" class="{% if 'events' in request.resolver_match.url_name or 'event' in request.resolver_match.url_name %}active{% endif %}">📅 Události</a></li>
+                <li><a href="{% url 'core:photos_list' %}" class="{% if 'photo' in request.resolver_match.url_name %}active{% endif %}">📸 Fotky</a></li>
+                <li><a href="{% url 'core:maps_list' %}" class="{% if 'map' in request.resolver_match.url_name %}active{% endif %}">🗺️ Mapy</a></li>
+                <li><a href="{% url 'core:weather_alerts' %}" class="{% if 'weather' in request.resolver_match.url_name %}active{% endif %}">🌤️ Počasí</a></li>
+                <li><a href="{% url 'core:calendar_view' %}" class="{% if 'calendar' in request.resolver_match.url_name %}active{% endif %}">📆 Kalendář</a></li>
+                <li><a href="{% url 'core:recurring_events' %}" class="{% if 'recurring' in request.resolver_match.url_name %}active{% endif %}">🔄 Pravidelné</a></li>
+                <li><a href="{% url 'core:birthdays' %}" class="{% if 'birthday' in request.resolver_match.url_name %}active{% endif %}">🎂 Narozeniny</a></li>
+                <li><a href="{% url 'core:chat' %}" class="{% if 'chat' in request.resolver_match.url_name %}active{% endif %}">💬 Chat</a></li>
+                <li><a href="{% url 'core:tips_list' %}" class="{% if 'tip' in request.resolver_match.url_name %}active{% endif %}">💡 Tipy</a></li>
+                <li><a href="{% url 'core:debts_list' %}" class="{% if 'debt' in request.resolver_match.url_name %}active{% endif %}">💰 Dluhy</a></li>
+                <li><a href="{% url 'core:undercover' %}" class="{% if 'undercover' in request.resolver_match.url_name %}active{% endif %}">🎮 Undercover</a></li>
+                <li><a href="{% url 'core:notifications' %}" class="{% if 'notification' in request.resolver_match.url_name %}active{% endif %}">🔔 Notifikace</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container">
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 OnlyFriends - Aplikace pro skupinu přátel</p>
+        </div>
+    </footer>
+</body>
+</html>
+

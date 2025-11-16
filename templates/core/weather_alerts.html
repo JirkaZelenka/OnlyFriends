@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block title %}Počasí - OnlyFriends{% endblock %}
+
+{% block content %}
+<div class="content-header">
+    <h2>🌤️ Počasí a varování</h2>
+    <p>Hlídání požárů, silného větru a dalších varování</p>
+</div>
+
+{% if alerts %}
+<div class="card-grid">
+    {% for alert in alerts %}
+    <div class="card">
+        <h3>{{ alert.title }}</h3>
+        <span class="badge badge-{% if alert.severity == 'high' %}danger{% elif alert.severity == 'medium' %}warning{% else %}info{% endif %}">
+            {{ alert.get_alert_type_display }}
+        </span>
+        <p>{{ alert.description }}</p>
+        {% if alert.location %}
+            <p><strong>📍 Místo:</strong> {{ alert.location }}</p>
+        {% endif %}
+        <p><strong>⚠️ Závažnost:</strong> {{ alert.severity }}</p>
+        {% if alert.expires_at %}
+            <p><strong>⏰ Platí do:</strong> {{ alert.expires_at|date:"d.m.Y H:i" }}</p>
+        {% endif %}
+        <div class="card-meta">
+            <small>{{ alert.created_at|date:"d.m.Y H:i" }}</small>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    <h3>Žádná aktivní varování</h3>
+    <p>Všechno je v pořádku! 🌞</p>
+</div>
+{% endif %}
+{% endblock %}
+

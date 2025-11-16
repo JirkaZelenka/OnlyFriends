@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+
+{% block title %}Notifikace - OnlyFriends{% endblock %}
+
+{% block content %}
+<div class="content-header">
+    <h2>🔔 Notifikace</h2>
+    <p>Všechny notifikace a upozornění</p>
+</div>
+
+{% if notifications %}
+<div class="card">
+    <ul class="info-list">
+        {% for notification in notifications %}
+        <li>
+            <div>
+                <strong>{{ notification.title }}</strong>
+                <span class="badge badge-{% if notification.read %}success{% else %}warning{% endif %}">
+                    {% if notification.read %}✓ Přečteno{% else %}Nové{% endif %}
+                </span>
+                <span class="badge badge-info">{{ notification.get_notification_type_display }}</span>
+                <p>{{ notification.message }}</p>
+                {% if notification.sent_whatsapp %}
+                    <small>📱 WhatsApp</small>
+                {% endif %}
+                {% if notification.sent_app %}
+                    <small>📲 App</small>
+                {% endif %}
+                <p><small>{{ notification.created_at|date:"d.m.Y H:i" }}</small></p>
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% else %}
+<div class="empty-state">
+    <h3>Žádné notifikace</h3>
+    <p>Všechno je v pořádku! 🎉</p>
+</div>
+{% endif %}
+{% endblock %}
+

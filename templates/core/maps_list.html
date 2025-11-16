@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block title %}Mapy - OnlyFriends{% endblock %}
+
+{% block content %}
+<div class="content-header">
+    <h2>🗺️ Mapy</h2>
+    <p>Plánování výletů a ukládání míst do backlogu</p>
+</div>
+
+{% if locations %}
+<div class="card-grid">
+    {% for location in locations %}
+    <div class="card">
+        <h3>{{ location.name }}</h3>
+        <span class="badge badge-{% if location.is_backlog %}warning{% else %}success{% endif %}">
+            {% if location.is_backlog %}📋 Backlog{% else %}✅ Plánováno{% endif %}
+        </span>
+        <p><strong>Typ:</strong> {{ location.get_location_type_display }}</p>
+        {% if location.description %}
+            <p>{{ location.description|truncatewords:15 }}</p>
+        {% endif %}
+        <p><strong>📍 Souřadnice:</strong> {{ location.latitude }}, {{ location.longitude }}</p>
+        {% if location.added_by %}
+            <p><strong>Přidal:</strong> {{ location.added_by.username }}</p>
+        {% endif %}
+        <div class="card-meta">
+            <small>{{ location.created_at|date:"d.m.Y" }}</small>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    <h3>Zatím žádná místa</h3>
+    <p>Přidejte místa v admin panelu.</p>
+</div>
+{% endif %}
+{% endblock %}
+

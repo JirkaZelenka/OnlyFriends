@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+
+{% block title %}Události - OnlyFriends{% endblock %}
+
+{% block content %}
+<div class="content-header">
+    <h2>📅 Události</h2>
+    <p>Všechny plánované a proběhlé akce</p>
+</div>
+
+{% if events %}
+<div class="card-grid">
+    {% for event in events %}
+    <div class="card">
+        <h3>{{ event.title }}</h3>
+        {% if event.event_type == 'secret' %}
+            <span class="event-type-secret">🔒 Tajná akce</span>
+        {% else %}
+            <span class="event-type-public">🌍 Veřejná akce</span>
+        {% endif %}
+        <p>{{ event.description|truncatewords:20 }}</p>
+        {% if event.location %}
+            <p><strong>📍 Místo:</strong> {{ event.location }}</p>
+        {% endif %}
+        {% if event.organizer %}
+            <p><strong>👤 Organizátor:</strong> {{ event.organizer.username }}</p>
+        {% endif %}
+        {% if event.start_date %}
+            <p><strong>📅 Datum:</strong> {{ event.start_date|date:"d.m.Y H:i" }}</p>
+        {% endif %}
+        <div class="card-meta">
+            <a href="{% url 'core:event_detail' event.id %}" class="btn">Zobrazit detail</a>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    <h3>Zatím žádné události</h3>
+    <p>Vytvořte první událost v admin panelu.</p>
+</div>
+{% endif %}
+{% endblock %}
+

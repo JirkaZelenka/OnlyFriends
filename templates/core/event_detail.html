@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ event.title }} - OnlyFriends{% endblock %}
+
+{% block content %}
+<div class="content-header">
+    <h2>{{ event.title }}</h2>
+    {% if event.event_type == 'secret' %}
+        <span class="event-type-secret">🔒 Tajná akce</span>
+    {% else %}
+        <span class="event-type-public">🌍 Veřejná akce</span>
+    {% endif %}
+</div>
+
+<div class="card">
+    <h3>📝 Popis</h3>
+    <p>{{ event.description|default:"Bez popisu" }}</p>
+    
+    {% if event.location %}
+        <p><strong>📍 Místo:</strong> {{ event.location }}</p>
+    {% endif %}
+    
+    {% if event.organizer %}
+        <p><strong>👤 Organizátor:</strong> {{ event.organizer.username }}</p>
+    {% endif %}
+    
+    {% if event.start_date %}
+        <p><strong>📅 Začátek:</strong> {{ event.start_date|date:"d.m.Y H:i" }}</p>
+    {% endif %}
+    
+    {% if event.end_date %}
+        <p><strong>📅 Konec:</strong> {{ event.end_date|date:"d.m.Y H:i" }}</p>
+    {% endif %}
+    
+    {% if event.is_recurring %}
+        <p><strong>🔄 Pravidelná akce:</strong> {{ event.recurring_pattern }}</p>
+    {% endif %}
+</div>
+
+<div class="card">
+    <h3>🗳️ Hlasování</h3>
+    <p>Počet hlasů: {{ event.votes.count }}</p>
+    <ul class="info-list">
+        {% for vote in event.votes.all %}
+        <li>
+            <span>{{ vote.user.username }}</span>
+            <span class="badge {% if vote.vote %}badge-success{% else %}badge-danger{% endif %}">
+                {% if vote.vote %}✓ Přijde{% else %}✗ Nepřijde{% endif %}
+            </span>
+        </li>
+        {% empty %}
+        <li>Zatím nikdo nehlasoval</li>
+        {% endfor %}
+    </ul>
+</div>
+
+<div class="card">
+    <h3>✅ Checklist</h3>
+    <ul class="info-list">
+        {% for item in event.checklist_items.all %}
+        <li>
+            <span>{{ item.text }}</span>
+            <span class="badge {% if item.completed %}badge-success{% else %}badge-warning{% endif %}">
+                {% if item.completed %}Hotovo{% else %}K vyřízení{% endif %}
+            </span>
+        </li>
+        {% empty %}
+        <li>Žádné položky v checklistu</li>
+        {% endfor %}
+    </ul>
+</div>
+
+<div class="card">
+    <h3>📋 Itinerář</h3>
+    <ul class="info-list">
+        {% for item in event.itinerary_items.all %}
+        <li>
+            <span>{% if item.time %}{{ item.time|time:"H:i" }} - {% endif %}{{ item.description }}</span>
+        </li>
+        {% empty %}
+        <li>Žádný itinerář</li>
+        {% endfor %}
+    </ul>
+</div>
+
+<div class="card">
+    <h3>💬 Chat k akci</h3>
+    <ul class="info-list">
+        {% for message in event.chat_messages.all|slice:":10" %}
+        <li>
+            <div>
+                <strong>{{ message.user.username }}</strong> ({{ message.created_at|date:"d.m.Y H:i" }})
+                <p>{{ message.message }}</p>
+            </div>
+        </li>
+        {% empty %}
+        <li>Zatím žádné zprávy</li>
+        {% endfor %}
+    </ul>
+</div>
+
+<a href="{% url 'core:events_list' %}" class="btn btn-secondary">← Zpět na seznam</a>
+{% endblock %}
+
