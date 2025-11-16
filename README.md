@@ -15,6 +15,7 @@ Funkce:
 5) Počasí a hlídání požárů, silného větru, atd
 6) kalendář, kde každý může zapsat volno, nebo naopak už vybookované prázdniny
 7) Pravidelné akce každý rok, jako Tři jezy, Povaleč - natvrdo v kalendáři
+7.2) Scraping webů kvůli zjištění datumů těchto akcí, případně podobných
 8) Narozeniny lidí, resp hlavně kulatiny
 9) Chat, obecný i ke každé akci zvlášť
 10) tipy lidí na výlety/restaurace/dobrá místa obecně
