@@ -33,6 +33,7 @@ venv/
 env/
 ENV/
 .venv
+.env/
 
 # IDE
 .vscode/
@@ -45,3 +46,4 @@ ENV/
 .DS_Store
 Thumbs.db
 
+wsgi.py

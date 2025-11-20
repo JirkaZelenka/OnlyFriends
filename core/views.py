@@ -14,6 +14,7 @@ from .forms import (
     ChatMessageForm, TipForm, DebtForm, UndercoverWordPairForm,
     EventChecklistItemForm, EventItineraryForm
 )
+from .emails import send_event_notification
 
 
 def index(request):
@@ -81,6 +82,8 @@ def events_list(request):
 @login_required
 def event_create(request):
     """Create a new event"""
+    default_scope = 'notify_invited'
+    notification_scope = request.POST.get('notification_scope', default_scope) if request.method == 'POST' else default_scope
     if request.method == 'POST':
         form = EventForm(request.POST)
         if form.is_valid():
@@ -91,17 +94,28 @@ def event_create(request):
                 event.location = event.map_location.name
             event.save()
             form.save_m2m()  # Save many-to-many relationships
+            
+            if notification_scope != 'notify_none':
+                send_event_notification(event, scope=notification_scope, notification_reason='created')
+            
             messages.success(request, 'Událost byla úspěšně vytvořena!')
             return redirect('core:event_detail', event_id=event.id)
     else:
         form = EventForm()
-    return render(request, 'core/event_form.html', {'form': form, 'title': 'Nová událost'})
+    return render(request, 'core/event_form.html', {
+        'form': form,
+        'title': 'Nová událost',
+        'notification_scope': notification_scope,
+        'event': None,
+    })
 
 
 @login_required
 def event_edit(request, event_id):
     """Edit an existing event"""
     event = get_object_or_404(Event, id=event_id)
+    default_scope = 'notify_none'
+    notification_scope = request.POST.get('notification_scope', default_scope) if request.method == 'POST' else default_scope
     if request.method == 'POST':
         form = EventForm(request.POST, instance=event)
         if form.is_valid():
@@ -111,11 +125,18 @@ def event_edit(request, event_id):
                 event.location = event.map_location.name
             event.save()
             form.save_m2m()  # Save many-to-many relationships
+            if notification_scope != 'notify_none':
+                send_event_notification(event, scope=notification_scope, notification_reason='updated')
             messages.success(request, 'Událost byla úspěšně upravena!')
             return redirect('core:event_detail', event_id=event.id)
     else:
         form = EventForm(instance=event)
-    return render(request, 'core/event_form.html', {'form': form, 'event': event, 'title': 'Upravit událost'})
+    return render(request, 'core/event_form.html', {
+        'form': form,
+        'event': event,
+        'title': 'Upravit událost',
+        'notification_scope': notification_scope,
+    })
 
 
 @login_required

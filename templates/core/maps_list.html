@@ -529,9 +529,9 @@ switchMapType('osm');
 </div>
 
 <script>
-// Locations Map (separate from explorer map)
-let locationsMap = null;
-let locationMarkers = [];
+// Locations Map (separate from explorer map) - using same pattern as explorer map
+let savedLocationsMap = null;
+let savedLocationMarkers = [];
 let allLocationsData = [
     {% for location in locations %}
     {
@@ -550,78 +550,30 @@ let allLocationsData = [
     {% endfor %}
 ];
 
-function initLocationsMap() {
-    if (locationsMap) {
-        console.log('Map already initialized');
-        return;
-    }
+function initSavedLocationsMap() {
+    if (savedLocationsMap) return; // Already initialized
     
-    const mapContainer = document.getElementById('locationsMap');
-    if (!mapContainer) {
-        console.error('Map container not found');
-        return;
-    }
+    savedLocationsMap = L.map('locationsMap').setView([49.8, 15.5], 7); // Czech Republic center
     
-    // Check if Leaflet is loaded
-    if (typeof L === 'undefined') {
-        console.error('Leaflet library is not loaded');
-        mapContainer.innerHTML = '<div style="padding: 20px; text-align: center; color: #666; background: #fff; border-radius: 5px;">Chyba: Leaflet knihovna není načtena. Obnovte prosím stránku.</div>';
-        return;
-    }
+    // Add OpenStreetMap tiles
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors',
+        maxZoom: 19
+    }).addTo(savedLocationsMap);
     
-    try {
-        console.log('Initializing Leaflet map...');
-        
-        // Clear any existing content
-        mapContainer.innerHTML = '';
-        
-        // Initialize map centered on Czech Republic
-        locationsMap = L.map('locationsMap', {
-            zoomControl: true,
-            attributionControl: true
-        }).setView([49.8, 15.5], 7);
-        
-        console.log('Map object created:', locationsMap);
-        
-        // Add OpenStreetMap tiles
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-            maxZoom: 19
-        }).addTo(locationsMap);
-        
-        console.log('Tile layer added');
-        
-        // Force map to resize after a short delay to ensure container is visible
-        setTimeout(() => {
-            if (locationsMap) {
-                locationsMap.invalidateSize();
-                console.log('Map size invalidated');
-            }
-        }, 100);
-        
-        // Add all markers
-        updateLocationsMap('all');
-    } catch (error) {
-        console.error('Error initializing locations map:', error);
-        mapContainer.innerHTML = '<div style="padding: 20px; text-align: center; color: #666; background: #fff; border-radius: 5px;">Chyba při inicializaci mapy: ' + error.message + '</div>';
-    }
+    // Add all markers
+    updateSavedLocationsMap('all');
 }
 
-function updateLocationsMap(filter) {
-    if (!locationsMap) {
-        console.error('Map is not initialized');
+function updateSavedLocationsMap(filter) {
+    if (!savedLocationsMap) {
+        initSavedLocationsMap();
         return;
     }
     
     // Clear existing markers
-    locationMarkers.forEach(marker => {
-        try {
-            locationsMap.removeLayer(marker);
-        } catch (e) {
-            console.warn('Error removing marker:', e);
-        }
-    });
-    locationMarkers = [];
+    savedLocationMarkers.forEach(marker => savedLocationsMap.removeLayer(marker));
+    savedLocationMarkers = [];
     
     // Filter locations
     let filteredLocations = allLocationsData;
@@ -632,154 +584,109 @@ function updateLocationsMap(filter) {
     }
     
     if (filteredLocations.length === 0) {
-        console.log('No locations to display for filter:', filter);
-        // Show message in map if no locations
-        const mapDiv = document.getElementById('locationsMap');
-        if (mapDiv) {
-            const existingMsg = mapDiv.querySelector('.no-locations-msg');
-            if (!existingMsg) {
-                const msg = document.createElement('div');
-                msg.className = 'no-locations-msg';
-                msg.style.cssText = 'position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 20px; background: rgba(255,255,255,0.9); border-radius: 5px; z-index: 1000; text-align: center;';
-                msg.textContent = 'Žádná místa k zobrazení pro vybraný filtr.';
-                mapDiv.appendChild(msg);
-            }
-        }
         return;
-    }
-    
-    // Remove any "no locations" message
-    const mapDiv = document.getElementById('locationsMap');
-    if (mapDiv) {
-        const existingMsg = mapDiv.querySelector('.no-locations-msg');
-        if (existingMsg) {
-            existingMsg.remove();
-        }
     }
     
     // Create markers and bounds
     const bounds = [];
     
     filteredLocations.forEach(location => {
-        try {
-            const marker = L.marker([location.latitude, location.longitude]);
-            
-            // Create popup content
-            const popupContent = `
-                <div style="min-width: 200px;">
-                    <h4 style="margin: 0 0 10px 0; font-size: 1.1rem;">${location.name}</h4>
-                    <p style="margin: 5px 0;"><strong>Typ:</strong> ${location.location_type}</p>
-                    <p style="margin: 5px 0;">
-                        <span class="badge badge-${location.is_backlog ? 'warning' : 'success'}" style="padding: 3px 8px; border-radius: 3px; font-size: 0.85rem;">
-                            ${location.is_backlog ? '📋 Backlog' : '✅ Plánováno'}
-                        </span>
-                    </p>
-                    ${location.description ? `<p style="margin: 5px 0; font-size: 0.9rem; color: #666;">${location.description}</p>` : ''}
-                    <p style="margin: 5px 0; font-size: 0.85rem;"><strong>📍</strong> ${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)}</p>
-                    <p style="margin: 5px 0; font-size: 0.85rem;"><strong>Přidal:</strong> ${location.added_by}</p>
-                    ${location.events_count > 0 ? `<p style="margin: 5px 0; font-size: 0.85rem;"><strong>Akce:</strong> ${location.events_count}</p>` : ''}
-                    <div style="margin-top: 10px;">
-                        <a href="${location.edit_url}" class="btn" style="font-size: 0.85rem; padding: 5px 10px; text-decoration: none; display: inline-block;">✏️ Upravit</a>
-                    </div>
+        const marker = L.marker([location.latitude, location.longitude]);
+        
+        // Create popup content
+        const popupContent = `
+            <div style="min-width: 200px;">
+                <h4 style="margin: 0 0 10px 0; font-size: 1.1rem;">${location.name}</h4>
+                <p style="margin: 5px 0;"><strong>Typ:</strong> ${location.location_type}</p>
+                <p style="margin: 5px 0;">
+                    <span style="padding: 3px 8px; border-radius: 3px; font-size: 0.85rem; background: ${location.is_backlog ? '#ffc107' : '#28a745'}; color: white;">
+                        ${location.is_backlog ? '📋 Backlog' : '✅ Plánováno'}
+                    </span>
+                </p>
+                ${location.description ? `<p style="margin: 5px 0; font-size: 0.9rem; color: #666;">${location.description}</p>` : ''}
+                <p style="margin: 5px 0; font-size: 0.85rem;"><strong>📍</strong> ${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)}</p>
+                <p style="margin: 5px 0; font-size: 0.85rem;"><strong>Přidal:</strong> ${location.added_by}</p>
+                ${location.events_count > 0 ? `<p style="margin: 5px 0; font-size: 0.85rem;"><strong>Akce:</strong> ${location.events_count}</p>` : ''}
+                <div style="margin-top: 10px;">
+                    <a href="${location.edit_url}" style="font-size: 0.85rem; padding: 5px 10px; text-decoration: none; display: inline-block; background: #007bff; color: white; border-radius: 3px;">✏️ Upravit</a>
                 </div>
-            `;
-            
-            marker.bindPopup(popupContent);
-            
-            // Create tooltip for hover
-            const tooltipContent = `
-                <div style="font-weight: bold; margin-bottom: 3px;">${location.name}</div>
-                <div style="font-size: 0.85rem;">${location.location_type}</div>
-                <div style="font-size: 0.85rem; color: #666;">
-                    ${location.is_backlog ? '📋 Backlog' : '✅ Plánováno'}
-                </div>
-            `;
-            marker.bindTooltip(tooltipContent, {
-                permanent: false,
-                direction: 'top',
-                offset: [0, -10]
-            });
-            
-            // Add click handler to open edit page
-            marker.on('click', function() {
-                window.location.href = location.edit_url;
-            });
-            
-            marker.addTo(locationsMap);
-            locationMarkers.push(marker);
-            bounds.push([location.latitude, location.longitude]);
-        } catch (error) {
-            console.error('Error adding marker for location:', location.name, error);
-        }
+            </div>
+        `;
+        
+        marker.bindPopup(popupContent);
+        
+        // Create tooltip for hover
+        const tooltipContent = `
+            <div style="font-weight: bold; margin-bottom: 3px;">${location.name}</div>
+            <div style="font-size: 0.85rem;">${location.location_type}</div>
+            <div style="font-size: 0.85rem; color: #666;">
+                ${location.is_backlog ? '📋 Backlog' : '✅ Plánováno'}
+            </div>
+        `;
+        marker.bindTooltip(tooltipContent, {
+            permanent: false,
+            direction: 'top',
+            offset: [0, -10]
+        });
+        
+        // Add click handler to open edit page
+        marker.on('click', function() {
+            window.location.href = location.edit_url;
+        });
+        
+        marker.addTo(savedLocationsMap);
+        savedLocationMarkers.push(marker);
+        bounds.push([location.latitude, location.longitude]);
     });
     
     // Fit map to show all markers
     if (bounds.length > 0) {
-        try {
-            locationsMap.fitBounds(bounds, { padding: [50, 50] });
-        } catch (error) {
-            console.error('Error fitting bounds:', error);
-        }
+        savedLocationsMap.fitBounds(bounds, { padding: [50, 50] });
     }
     
     // Update filter button styles
-    try {
-        document.getElementById('filterAll').className = filter === 'all' ? 'btn btn-primary' : 'btn btn-secondary';
-        document.getElementById('filterPlanned').className = filter === 'planned' ? 'btn btn-primary' : 'btn btn-secondary';
-        document.getElementById('filterBacklog').className = filter === 'backlog' ? 'btn btn-primary' : 'btn btn-secondary';
-    } catch (error) {
-        console.error('Error updating filter buttons:', error);
-    }
+    const filterAll = document.getElementById('filterAll');
+    const filterPlanned = document.getElementById('filterPlanned');
+    const filterBacklog = document.getElementById('filterBacklog');
+    
+    if (filterAll) filterAll.className = filter === 'all' ? 'btn btn-primary' : 'btn btn-secondary';
+    if (filterPlanned) filterPlanned.className = filter === 'planned' ? 'btn btn-primary' : 'btn btn-secondary';
+    if (filterBacklog) filterBacklog.className = filter === 'backlog' ? 'btn btn-primary' : 'btn btn-secondary';
 }
 
 function filterLocationsMap(filter) {
-    if (!locationsMap) {
-        initLocationsMap();
-    } else {
-        updateLocationsMap(filter);
+    if (!savedLocationsMap) {
+        initSavedLocationsMap();
     }
+    updateSavedLocationsMap(filter);
 }
 
-// Initialize locations map when page loads and Leaflet is ready
-function initializeLocationsMapWhenReady() {
-    // Wait for Leaflet to be loaded
+// Initialize saved locations map when page loads
+function initSavedLocationsMapWhenReady() {
+    // Check if container exists
+    const container = document.getElementById('locationsMap');
+    if (!container) {
+        setTimeout(initSavedLocationsMapWhenReady, 100);
+        return;
+    }
+    
+    // Check if Leaflet is loaded
     if (typeof L === 'undefined') {
-        console.log('Waiting for Leaflet to load...');
-        setTimeout(initializeLocationsMapWhenReady, 100);
+        setTimeout(initSavedLocationsMapWhenReady, 100);
         return;
     }
     
-    console.log('Leaflet loaded, checking DOM...');
-    console.log('Locations data:', allLocationsData);
-    console.log('Locations count:', allLocationsData ? allLocationsData.length : 0);
-    
-    // Check if map container exists
-    const mapContainer = document.getElementById('locationsMap');
-    if (!mapContainer) {
-        console.log('Map container not found yet, waiting...');
-        setTimeout(initializeLocationsMapWhenReady, 100);
-        return;
-    }
-    
-    // Wait for DOM to be ready
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('DOM loaded, initializing map');
-            setTimeout(() => initLocationsMap(), 200); // Small delay to ensure everything is ready
-        });
-    } else {
-        // DOM is already ready
-        console.log('DOM already ready, initializing map');
-        setTimeout(() => initLocationsMap(), 200); // Small delay to ensure Leaflet is fully loaded
+    // Initialize if we have locations
+    if (allLocationsData && allLocationsData.length > 0) {
+        initSavedLocationsMap();
     }
 }
 
-// Start initialization when script loads
+// Start initialization
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initializeLocationsMapWhenReady);
+    document.addEventListener('DOMContentLoaded', initSavedLocationsMapWhenReady);
 } else {
-    // DOM is already ready, start initialization
-    initializeLocationsMapWhenReady();
+    initSavedLocationsMapWhenReady();
 }
 </script>
 

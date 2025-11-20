@@ -23,3 +23,12 @@ Funkce:
 12) Něco jako triccount - appka na vypořádání dluhů, plus každý má QR kody aby ostatní mohli přímo generovat platby
 13) Naše oblíbená hra Undercover - možnost generovat dvojice slov, CZ i ENG verze, do společného balíčku, a nějaký shuffle mode když chce kdokoliv hrát? Ne jako fullgame, ale to doplníme později
 14) Notifikace na novou událost do Whatsappu, nebo do appky dle preference uživatele
+---
+- fix té mapy s uloženými místy, co bylo, a co může být
+- hosting přes klonování githubu
+- zkusit dash app Fencing taky sem, na druhý acount + zaplatit a napojit na moji doménu (a pro dropnout wedos)
+- Individuální layouty (barva, rozvržení)
+- Notifikace mail, (Whatsapp)
+- dodělat triccount
+- oddělat undercover
+- preference uživatelů

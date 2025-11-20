@@ -35,6 +35,23 @@
             </div>
         {% endfor %}
         
+        <div class="form-group" style="margin-top: 30px; padding: 20px; border: 2px dashed #ccc; border-radius: 12px;">
+            <h3 style="margin-top: 0;">Notifikace</h3>
+            <p style="margin-bottom: 15px; color: #555;">Vyberte, koho chcete o této změně informovat. Uživatelé budou upozorněni podle svých preferencí (email / SMS). WhatsApp zůstává zatím vypnutý.</p>
+            <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                <input type="radio" name="notification_scope" value="notify_all" {% if notification_scope == 'notify_all' %}checked{% endif %}>
+                <span><strong>Notifikovat všechny</strong> – všichni registrovaní uživatelé.</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                <input type="radio" name="notification_scope" value="notify_invited" {% if notification_scope == 'notify_invited' %}checked{% endif %}>
+                <span><strong>Notifikovat pozvané</strong> – kromě uživatelů uvedených ve „Vynechaných“.</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 10px;">
+                <input type="radio" name="notification_scope" value="notify_none" {% if notification_scope == 'notify_none' %}checked{% endif %}>
+                <span><strong>Bez notifikace</strong> – nikoho nyní neupozorňovat.</span>
+            </label>
+        </div>
+        
         <div style="margin-top: 30px; display: flex; gap: 10px;">
             <button type="submit" class="btn">Uložit</button>
             {% if event %}
